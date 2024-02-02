@@ -913,10 +913,10 @@ def correct_data(header_rows, realtime_update, run_pause, interpolate_button, st
         ### ADD comparison site
         from data_cleaning import add_comparison_site
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-        
-        if comparison_parameter != "0" and 'comparison_parameter' in changed_id and "comparison_site" in checklist:
+        # and 'comparison_site' in changed_id  - this seems to be less stable
+        if comparison_parameter != "0" and "comparison_site" in checklist:
             df_raw = add_comparison_site(comparison_site_sql_id, comparison_parameter, df_raw)
-        if comparison_site.startswith("USGS") and 'comparison_site' in changed_id and "comparison_site" in checklist:
+        if comparison_site.startswith("USGS") and "comparison_site" in checklist:
             from import_data import usgs_data_import
             
             df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
