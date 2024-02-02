@@ -1,15 +1,12 @@
-import os 
+
 from sqlalchemy import create_engine
-import psycopg2
 import pandas as pd
 import configparser
-import sys
 import os
 from datetime import datetime
 from datetime import timedelta
 import urllib
 import configparser
-import time
 import numpy as np
 #import win32com.client as win32
 #import schedule

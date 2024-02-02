@@ -4,13 +4,12 @@ Created on Mon Aug 30 10:02:36 2021
 
 @author: IHiggins
 """
-import sys
-import os
+
 from datetime import datetime
 from datetime import timedelta
 import urllib
 import configparser
-import time
+
 import numpy as np
 #import win32com.client as win32
 #import schedule

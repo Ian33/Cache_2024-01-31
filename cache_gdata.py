@@ -5,20 +5,9 @@ Created on Tue Oct 26 14:29:39 2021
 @author: IHiggins
 """
 import base64
-import datetime as dt
-from datetime import timedelta
-from datetime import datetime
 import io
 import pyodbc
 import configparser
-import pickle 
-import dash_ag_grid as dag
-
-# add a note ####
-# added a second note #
-# a forth comment
-
-# added a third note possibly in a branch?
 import dash
 from dash import html
 from dash.dependencies import Input, Output, State
@@ -26,33 +15,19 @@ from dash import dcc
 #from dash import html
 from dash import dash_table
 import pandas as pd
-from datetime import date
 import dash_datetimepicker
 import dash_daq as daq
 
-import plotly.graph_objs as go
 import numpy as np
-from plotly.subplots import make_subplots
-from scipy import stats, interpolate
-from sklearn.linear_model import LinearRegression
-from scipy.interpolate import interp1d, UnivariateSpline
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
 from sqlalchemy import create_engine
 import urllib
 # long call back 
 # https://dash.plotly.com/long-callbacks
-#import diskcache
-from dash.long_callback import DiskcacheLongCallbackManager
-from dash.long_callback import CeleryLongCallbackManager
-#from celery import Celery
-#cache = diskcache.Cache("./cache")
-#long_callback_manager = DiskcacheLongCallbackManager(cache)
+
 
 ## fix copy of slice error with df.loc[df.A > 5, 'A'] = 1000
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-# a new comment
 #app = dash.Dash(__name__, external_stylesheets=external_stylesheets, long_callback_manager=long_callback_manager)
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 #Driver = 'SQL Server'

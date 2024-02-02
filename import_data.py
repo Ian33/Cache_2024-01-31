@@ -2,28 +2,12 @@ import base64
 import datetime as dt
 from datetime import timedelta
 from datetime import datetime
-import io
+
 import pyodbc
 import configparser
-import requests
-# add a note ####
-# added a second note #
-# a forth comment
-
-# added a third note possibly in a branch?
-import dash
-from dash import html
-from dash.dependencies import Input, Output, State
-from dash import dcc
-#from dash import html
-from dash import dash_table
 import pandas as pd
 from datetime import date
-import dash_datetimepicker
-import dash_daq as daq
 
-import plotly.graph_objs as go
-import numpy as np
 from plotly.subplots import make_subplots
 from sqlalchemy import create_engine
 import urllib

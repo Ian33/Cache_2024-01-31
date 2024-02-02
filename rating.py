@@ -12,11 +12,10 @@ import configparser
 import pyodbc
 import configparser
 from sqlalchemy import create_engine
-import psycopg2
+
 import pandas as pd
 import configparser
-import sys
-import os
+
 from datetime import datetime
 from datetime import timedelta
 import urllib

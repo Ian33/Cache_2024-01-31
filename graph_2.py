@@ -1,47 +1,23 @@
 import pandas as pd
-import base64
 import datetime as dt
-from datetime import timedelta
-from datetime import datetime
-import io
-import pyodbc
 import configparser
-import pyodbc
 import configparser
 from sqlalchemy import create_engine
-import psycopg2
 import pandas as pd
 import configparser
-import sys
 import os
-from datetime import datetime
-from datetime import timedelta
 import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.signal import find_peaks, find_peaks_cwt
-import urllib
-# add a note ####
-# added a second note #
-# a forth comment
-from scipy import stats, interpolate
-from sklearn.linear_model import LinearRegression
-from scipy.interpolate import interp1d, UnivariateSpline
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
-# added a third note possibly in a branch?
-import dash
-from dash.dependencies import Input, Output, State
 #import dash_core_components as dcc
 from dash import dcc
 from dash import html
 #import dash_html_components as html
 #import dash_table
-from dash import dash_table
+
 import pandas as pd
 
-import dash_datetimepicker
-import dash_daq as daq
 import plotly.io as pio
 pio.kaleido.scope.default_format = "svg"
 import plotly.graph_objs as go

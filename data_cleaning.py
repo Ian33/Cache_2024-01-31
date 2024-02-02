@@ -5,30 +5,11 @@ Created on Wed Mar  2 08:22:14 2022
 @author: IHiggins
 """
 
-import base64
 import datetime as dt
-from datetime import timedelta
-from datetime import datetime
-
-# add a note ####
-# added a second note #
-# a forth comment
-
-# added a third note possibly in a branch?
-
 import pandas as pd
-from datetime import date
-
-import dash_daq as daq
-
 import plotly.graph_objs as go
 import numpy as np
-from plotly.subplots import make_subplots
-from scipy.optimize import curve_fit
-from numpy.polynomial import polynomial as P
 from scipy import stats, interpolate
-from sklearn.linear_model import LinearRegression
-from scipy.interpolate import interp1d, UnivariateSpline
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
