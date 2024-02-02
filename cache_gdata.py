@@ -49,15 +49,6 @@ from dash.long_callback import CeleryLongCallbackManager
 #cache = diskcache.Cache("./cache")
 #long_callback_manager = DiskcacheLongCallbackManager(cache)
 
-
-
-#celery_app = Celery(
-#    __name__, broker="redis://localhost:6379/0", backend="redis://localhost:6379/1", external_stylesheets=external_stylesheets
-#)
-#long_callback_manager = CeleryLongCallbackManager(celery_app)
-
-#app = dash.Dash(__name__, long_callback_manager=long_callback_manager)
-
 ## fix copy of slice error with df.loc[df.A > 5, 'A'] = 1000
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
