@@ -116,7 +116,11 @@ color_map = {
 # site code = site_sql_id
 def parameter_graph(df, site_code, site_name, parameter):
     if parameter == "FlowLevel":
-         parameter = "discharge"
+         base_parameter = "water_level"
+         derived_parameter = "discharge"
+    else:
+         base_parameter = parameter
+         derived_parameter = parameter
     try:
         from data_cleaning import reformat_data
         df = reformat_data(df)
@@ -133,7 +137,7 @@ def parameter_graph(df, site_code, site_name, parameter):
     show_subplot_titles = False # supblot titles are hardcoded as annotations
     font_size = 20
     show_chart_title = True
-    chart_title = f"{site_name} {(parameter.replace('_', ' '))} {dt.datetime.strftime(df['datetime'].min(), '%Y-%m-%d')} to {dt.datetime.strftime(df['datetime'].max(), '%Y-%m-%d')}"
+    chart_title = f"{site_name} {(derived_parameter.replace('_', ' '))} {dt.datetime.strftime(df['datetime'].min(), '%Y-%m-%d')} to {dt.datetime.strftime(df['datetime'].max(), '%Y-%m-%d')}"
     title_x = .5
     plot_background_color = 'rgba(0,0,0,0)' #'rgba(0,0,0,0)' clearn
     subplot_titles = subplot_titles if show_subplot_titles else None
@@ -206,7 +210,7 @@ def parameter_graph(df, site_code, site_name, parameter):
         #for i in df.index.unique():
        
         #fig.update_yaxes(range=[0,1], row=row_count, col=1, secondary_y=True)
-    fig.update_yaxes(title_text=f"{parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
     fig.update_yaxes(showticklabels=False, row=row_count, col=1, secondary_y=True)
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=False, secondary_y=False)
@@ -217,7 +221,7 @@ def parameter_graph(df, site_code, site_name, parameter):
                 x=df.loc[:, "datetime"],
                 y=df.loc[:, f"data"],
                 line=dict(color=color_map.get(f"data", 'black'), width = 1),
-                name=f"raw_{parameter}",showlegend=True,),row=row_count, col=1, secondary_y=False),
+                name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=False),
             
     if f"corrected_data" in df.columns:
             if df.corrected_data.mean() > df.data.mean()+10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
@@ -225,24 +229,24 @@ def parameter_graph(df, site_code, site_name, parameter):
             else:
                  secondary = False
             fig.add_trace(go.Scatter(
-                x=df.loc[:, "datetime"],
-                y=df.loc[:, f"corrected_data"],
-                line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
-                name=f"corrected_{parameter}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
-        
+                    x=df.loc[:, "datetime"],
+                    y=df.loc[:, f"corrected_data"],
+                    line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
+                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
+           
     # special graph
-    if f"{parameter}" in df.columns:
-            if parameter == "discharge": # set primary axis to "stage (feet)"
+    if f"{derived_parameter}" in df.columns:
+            if derived_parameter == "discharge": # set primary axis to "stage (feet)"
                 fig.update_yaxes(title_text=f"stage (wl feet)", row=row_count, col=1, secondary_y=False, )
             else:
-                 fig.update_yaxes(title_text=f"{parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
-            fig.update_yaxes(title_text=f"{parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, showticklabels=True, secondary_y=True, )
+                 fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[derived_parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+            fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[derived_parameter]['unit']})", row=row_count, col=1, showticklabels=True, secondary_y=True, )
             #fig.update_yaxes(showgrid=False, showticklabels=False, row=row_count, col=1, secondary_y=True)
             fig.add_trace(go.Scatter(
                 x=df.loc[:, "datetime"],
-                y=df.loc[:, f"{parameter}"],
-                line=dict(color=color_map.get(f"{parameter}", 'black'), width = 2),
-                name=f"{parameter}",showlegend=True,),row=row_count, col=1, secondary_y=True),
+                y=df.loc[:, f"{derived_parameter}"],
+                line=dict(color=color_map.get(f"{derived_parameter}", 'black'), width = 2),
+                name=f"{derived_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=True),
 
     # comparison graph    
     if "comparison" in df.columns:
@@ -313,7 +317,7 @@ def parameter_graph(df, site_code, site_name, parameter):
             mode='markers',
             marker=dict(
                 color=color_map.get(f"field_observation", 'black'), size=12, opacity=.9),
-            text='', name=f"{obs}", showlegend=True), row=row_count, col=1, secondary_y=secondary,)
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=secondary,)
             annotations(obs)
     row_count = row_count+1
     

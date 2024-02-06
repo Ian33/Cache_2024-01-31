@@ -23,7 +23,9 @@ from sqlalchemy import create_engine
 import urllib
 # long call back 
 # https://dash.plotly.com/long-callbacks
-
+## launch a new web browser
+from web_browser import launch_web_broswer
+launch_web_broswer()
 
 ## fix copy of slice error with df.loc[df.A > 5, 'A'] = 1000
 
