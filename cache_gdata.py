@@ -21,6 +21,7 @@ import dash_daq as daq
 import numpy as np
 from sqlalchemy import create_engine
 import urllib
+import plotly.graph_objs as go
 # long call back 
 # https://dash.plotly.com/long-callbacks
 ## launch a new web browser
@@ -256,7 +257,7 @@ app.layout = html.Div([
             dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
             html.Div(html.Button('interpolate', id='interpolate_button')), 
             html.Div([   
-                html.Button(id="run_pause", children="Run Job!"),
+                html.Button(id="run_job", children="Run Job!"),
                 html.Div([html.P(id="paragraph_id", children=["Button not clicked"])]),
                 html.Div([daq.ToggleSwitch(id='realtime_update'),]), #dynamic default so sql query doesnt automatically correct for obs
                 # html.Div([daq.ToggleSwitch(id='realtime_update', value=True),]), default automatically update
@@ -332,7 +333,7 @@ def display_file_structure(Select_Data_Source):
 @app.callback(
     Output('realtime_update', 'value'),
     Input('Select_Data_Source', 'value'))
-def run_pause(select_data_source):
+def run_job(select_data_source):
     # I think True should be sql query but that does not seem to work, however I think the true and false are confusing
     if select_data_source == False:  # if file upload automatically correct
         return True  # ealtime Update off
@@ -775,7 +776,7 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     Output(component_id='graph_output', component_property='children'),
     Input("header_rows","value"),
     Input("realtime_update", "value"),
-    Input("run_pause", "n_clicks"),
+    Input("run_job", "n_clicks"),
     Input('interpolate_button', 'n_clicks'),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
@@ -798,13 +799,19 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     #This example uses running to set the disabled property of the button to True while the callback is running, and False when it completes
    # manager=long_callback_manager,)
     
-def correct_data(header_rows, realtime_update, run_pause, interpolate_button, start_date, end_date, checklist, data_level, site, site_sql_id, comparison_site_sql_id, comparison_site, ratings_value, Parameter_value, comparison_parameter, Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
+def correct_data(header_rows, realtime_update, run_job, interpolate_button, start_date, end_date, checklist, data_level, site, site_sql_id, comparison_site_sql_id, comparison_site, ratings_value, Parameter_value, comparison_parameter, Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
 
     '''Takes dataframe of data and observations from function: get_observations '''
     df = pd.DataFrame(Initial_Data_Correction_row)
     from data_cleaning import style_formatting
     from data_cleaning import data_conversion
     from discharge import discharge_calculation, finalize_discharge_dataframe
+    from data_cleaning import reformat_data, parameter_calculation
+
+    realtime_update_info = "" # placehoulder, I go back and forth bethween pausing the run until data is present and using placeholders
+    callback_state = ""
+    #fig = go.Figure()
+    fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
     
     # if there is no data to look at dont show data table
     # Input(component_id='Parameter', component_property='value'),
@@ -821,24 +828,6 @@ def correct_data(header_rows, realtime_update, run_pause, interpolate_button, st
     # but we can change the data in the data column on initial import
 
 
-    # initial dataframe re-format
-    from data_cleaning import reformat_data
-    # df_raw = reformat_data(df_raw)  
-    def parameter_calculation(df):
-      
-        if observation not in df.columns:
-            df[observation] = "nan"
-        if 'offset' not in df_raw.columns:
-            df["offset"] = "nan"
-        df['offset'] = df[observation] - df[data_level]
-        df['offset'].interpolate( method='linear', inplace=True, axis=0, limit_direction='both')
-        df['corrected_data'] = (df[data_level]+df['offset']).round(2)
-        df['offset'] = (df[observation] - df["data"]).round(2)
-       
-        return df
-    
-    
-
     # if there is no data return a blank dataframe
     if df.empty:
         return dash.no_update
@@ -853,112 +842,102 @@ def correct_data(header_rows, realtime_update, run_pause, interpolate_button, st
             df_raw = pd.DataFrame(row)
         
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-        if 'run_pause' in changed_id or dff.empty or realtime_update is True:
-            df_raw = reformat_data(df_raw) 
-            df_raw = data_conversion(df_raw, Parameter_value)
-            df_raw = parameter_calculation(df_raw)
-            callback_state = "updating"
-            realtime_update_info = "realtime updating; if slow pause"
-        # I think you only need this run-pause once as the dash.no_update should stop downstream processes
-        if 'run_pause' not in changed_id and not dff.empty and realtime_update is False:
-             return dash.no_update
-        if realtime_update is False:
-            realtime_update_info = "realtime updating paused"
+        
+        #if 'run_job' in changed_id or dff.empty or realtime_update is True:
+        #if ((realtime_update is True or 'run_job' in changed_id) and not df.empty) or (((realtime_update is True or 'run_job' in changed_id) and not df.empty)):
+        df_raw = reformat_data(df_raw) 
+        df_raw = data_conversion(df_raw, Parameter_value)
+        if (realtime_update is True or 'run_job' in changed_id):
+            df_raw = parameter_calculation(df_raw, observation, data_level)
 
-        # re-arrange non discharge dataframe
         if Parameter_value != 'FlowLevel':
-            if "comparison" in df_raw.columns:
-                df_raw = df_raw[["datetime", "data", "corrected_data", observation, "offset", "estimate", "comparison"]]
-            if "comparison" not in df_raw.columns:
-                df_raw = df_raw[["datetime", "data", "corrected_data", observation, "offset", "estimate"]]
-        # calculate discharge
+            desired_order = ["datetime", "data", "corrected_data", "observation", "observation_stage", "offset", "estimate", "comparison", "comments"] # observation and observation_stage are kinda redundent at some point and should be clarified
+            # Filter out columns that exist in the DataFrame
+            existing_columns = [col for col in desired_order if col in df_raw.columns]
+            # Reorder the DataFrame columns
+            df_raw = df_raw[existing_columns]
+        
+            # calculate discharge
         if Parameter_value == 'FlowLevel':
-                if not 'discharge' in df_raw.columns:
-                    df_raw['discharge'] = 0
-                if not 'q_observation' in df_raw.columns:
-                    df_raw['q_observation'] = 'nan'
-               
-                if ratings_value == 'NONE':  # If there is no discharge calculate a discharge of zero
-                    df_raw["q_offset"] = "nan"
-                    df_raw["precent_q_change"] = "nan"
-                    df_raw["RatingNumber"] = "NONE"
-                else:
+            if not 'discharge' in df_raw.columns:
+                df_raw['discharge'] = 0
+            if not 'q_observation' in df_raw.columns:
+                df_raw['q_observation'] = 'nan'
+                
+            if ratings_value == 'NONE':  # If there is no discharge calculate a discharge of zero
+                df_raw["q_offset"] = "nan"
+                df_raw["precent_q_change"] = "nan"
+                df_raw["RatingNumber"] = "NONE"
+            else:
+                if (realtime_update is True or 'run_job' in changed_id):
                     df_raw = discharge_calculation(df_raw, ratings_value, site_sql_id)
-                    
+                        
                 df_raw = finalize_discharge_dataframe(df_raw)
-        # for whatever reasion this style conditional stopped working when i added the graph to the callback
-        ### ADD comparison site
+
+            ### ADD comparison site
         from data_cleaning import add_comparison_site
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-        # and 'comparison_site' in changed_id  - this seems to be less stable
-        if comparison_parameter != "0" and "comparison_site" in checklist:
-            df_raw = add_comparison_site(comparison_site_sql_id, comparison_parameter, df_raw)
-        if comparison_site.startswith("USGS") and "comparison_site" in checklist:
-            from import_data import usgs_data_import
-            
-            df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
-            df_raw = df_raw.merge(df_comp, on="datetime", how = "outer")
-            #print(df_comp.head(5))
-            
-        #if comparison_site in changed_id and "comparison_site" in checklist:
-        #    print("run comparison")
-        #    print(comparison_site)
-        #    if "comparison" in df_raw.columns:
-        #       df_raw.drop(columns=['comparison'], inplace=True)
-        #    else:
-        #        if comparison_site.startswith("USGS"):
-        #            from import_data import usgs_data_import
-        #            print("usgs data import")
-        #            df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
-        #            print(df_comp.head(5))
-         #       else:   
-        #            if comparison_parameter != "0" and 'comparison_parameter' in changed_id:
-                        #df_raw = add_comparison_site(comparison_site_sql_id, comparison_parameter, df_raw)
+            # and 'comparison_site' in changed_id  - this seems to be less stable
+        if 'comparison_site' in changed_id and "comparison_site" in checklist and comparison_parameter != "0":
+                if "comparison" in df_raw.columns:
+                    df_raw.drop(columns=['comparison'], inplace=True)
+                df_raw = add_comparison_site(comparison_site_sql_id, comparison_parameter, df_raw)
+        if 'comparison_site' in changed_id and "comparison_site" in checklist and comparison_site.startswith("USGS"):
+                if "comparison" in df_raw.columns:
+                    df_raw.drop(columns=['comparison'], inplace=True)
+                from import_data import usgs_data_import
+                df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
+                df_raw = df_raw.merge(df_comp, on="datetime", how = "outer")
+              
+        if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
+            df_raw.drop(columns=['comparison'], inplace=True)
 
-        if "comparison_site" not in checklist:
-            if "comparison" in df_raw.columns:
-               df_raw.drop(columns=['comparison'], inplace=True)
-        #else:
-              #  pass
         from cache_graph import graph_display
-        #if (df_raw.empty or len(df_raw.columns) < 1):
-        #    return dash.no_update
+            #if (df_raw.empty or len(df_raw.columns) < 1):
+            #    return dash.no_update
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-        
-        # if 'interpolate' in checklist and "comparison" in df_raw.columns:
-        #if 'interpolate_button' in changed_id and "comparison" in df_raw.columns:
         if 'interpolate_button' in changed_id:
-            #from data_cleaning import interpolate_function
             from interpolation import cache_comparison_interpolation
-            
+            print("run interpolation")
             df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, start_date, end_date)
 
-        #if "header_rows" in changed_id:
-        #if header_rows > 0:
-               # if start_date == '':
-        #        start_date = df.loc[df.datetime == df.datetime.min, "datetime"].item()
-        #        start_date = df.loc[df.datetime == df.datetime.max, "datetime"].item()
-                
-        #        start_date = (start_date - timedelta(minutes=(header_rows)*15))
-                #end_date = (end_date - timedelta(minutes=(0))).strftime("%m/%d/%Y %H:%M")
-                
-        #        from import_data import sql_import
-                
-        #        existing_data = sql_import(Parameter_value, site_sql_id, (start_date - timedelta(minutes=(header_rows)*15)), start_date)
-                
-        #        existing_data = existing_data[['datetime', 'corrected_data']]
-        #        existing_data = existing_data.rename(columns={"corrected_data": "existing_data"})
-                ## fill blanks in existing data
-        #        if not existing_data.empty:
-        #            df_raw = df_raw.merge(existing_data, on = "datetime", how = "outer")
-        #            df_raw = df_raw.sort_values(by='datetime', ascending=False)
-       
+            #if "header_rows" in changed_id:
+            #if header_rows > 0:
+                # if start_date == '':
+            #        start_date = df.loc[df.datetime == df.datetime.min, "datetime"].item()
+            #        start_date = df.loc[df.datetime == df.datetime.max, "datetime"].item()
+                    
+            #        start_date = (start_date - timedelta(minutes=(header_rows)*15))
+                    #end_date = (end_date - timedelta(minutes=(0))).strftime("%m/%d/%Y %H:%M")
+                    
+            #        from import_data import sql_import
+                    
+            #        existing_data = sql_import(Parameter_value, site_sql_id, (start_date - timedelta(minutes=(header_rows)*15)), start_date)
+                    
+            #        existing_data = existing_data[['datetime', 'corrected_data']]
+            #        existing_data = existing_data.rename(columns={"corrected_data": "existing_data"})
+                    ## fill blanks in existing data
+            #        if not existing_data.empty:
+            #            df_raw = df_raw.merge(existing_data, on = "datetime", how = "outer")
+            #            df_raw = df_raw.sort_values(by='datetime', ascending=False)
+        
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
         from graph_2 import cache_graph_export
-      
         fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
+        #if not dff.empty:
+        #    fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
+         #if 'run_job' not in changed_id and not dff.empty and realtime_update is False:
+         #    return dash.no_update
+        if realtime_update is False:
+            realtime_update_info = "realtime updating  - paused - "
+        if realtime_update is True:
+            realtime_update_info = "realtime updating"
+        
+        
         #return df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], [], True, fig
         return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True, fig
+  
+
 
 @app.callback(
     dash.dependencies.Output('upload_data_children', 'children'),
@@ -1001,20 +980,21 @@ def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
             
             save_fig(df, site_sql_id, site, parameter)
             from sql_upload import full_upload
+
+            desired_order = ["datetime", "data", "corrected_data", "discharge", "estimate"] # observation and observation_stage are kinda redundent at some point and should be clarified
+            # Filter out columns that exist in the DataFrame
+            existing_columns = [col for col in desired_order if col in df.columns]
+            # Reorder the DataFrame columns
+            df = df[existing_columns]
+            # rename parameters
             if parameter == "Conductivity" or parameter == "conductivity":
                 parameter = "Conductivity"
-                df = df[["datetime", "data", "corrected_data", "estimate"]]
             if parameter == "water_level" or parameter == "LakeLevel":
                 parameter = "water_level"
-                df = df[["datetime", "data", "corrected_data", "estimate"]]
             if parameter == 'groundwater_level' or parameter == "Piezometer":
                 parameter = "groundwater_level"
-                df = df[["datetime", "data", "corrected_data", "estimate"]]
-            if parameter == 'water_temperature':
-                df = df[["datetime", "data", "corrected_data", "estimate"]]
             if parameter == "discharge" or parameter == "FlowLevel":
                 parameter = "discharge"
-                df = df[["datetime", "data", "corrected_data", "discharge", "estimate"]]
             full_upload(df, parameter, site_sql_id, 7)
             
             from workup_notes import workup_notes_main

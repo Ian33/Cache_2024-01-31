@@ -151,7 +151,7 @@ def reformat_data(df):
 
     return df
 
-def style_formatting():
+def style_formatting(): # I think this is for an ag grid and dont use this
     style_data_conditional = ({'if': {'column_id': 'comparison',}, 'backgroundColor': 'rgb(222,203,228)','color': 'black'},
                               {'if': {'filter_query': '{parameter_observation} > 0','column_id': 'parameter_observation'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
                               {'if': {'filter_query': '{parameter_observation} > 0','column_id': 'datetime'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
@@ -164,6 +164,19 @@ def style_formatting():
                
 
     return style_data_conditional
+
+def parameter_calculation(df, observation, data_level):
+      
+        if observation not in df.columns:
+            df[observation] = "nan"
+        if 'offset' not in df.columns:
+            df["offset"] = "nan"
+        df['offset'] = df[observation] - df[data_level]
+        df['offset'].interpolate( method='linear', inplace=True, axis=0, limit_direction='both')
+        df['corrected_data'] = (df[data_level]+df['offset']).round(2)
+        df['offset'] = (df[observation] - df["data"]).round(2)
+       
+        return df
 
 def add_comparison_site(comparison_site_sql_id, comparison_parameter, df):
      # add comparison df
