@@ -29,7 +29,7 @@ import numpy as np
 from plotly.subplots import make_subplots
 import datetime as dt
 import pandas as pd
-import numpy as np
+
 from plotly.subplots import make_subplots
 
 import configparser

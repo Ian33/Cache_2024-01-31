@@ -878,7 +878,7 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         from data_cleaning import add_comparison_site
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
             # and 'comparison_site' in changed_id  - this seems to be less stable
-        if 'comparison_site' in changed_id and "comparison_site" in checklist and comparison_parameter != "0":
+        if "comparison_site" in checklist and comparison_parameter != "0":
                 if "comparison" in df_raw.columns:
                     df_raw.drop(columns=['comparison'], inplace=True)
                 df_raw = add_comparison_site(comparison_site_sql_id, comparison_parameter, df_raw)
@@ -888,7 +888,6 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
                 from import_data import usgs_data_import
                 df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
                 df_raw = df_raw.merge(df_comp, on="datetime", how = "outer")
-              
         if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
             df_raw.drop(columns=['comparison'], inplace=True)
 

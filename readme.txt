@@ -1,19 +1,26 @@
 
 
-To make requirements.txt
-1. if requirements.txt exists delete it first (you may be able to update?)
-2. run py -m pip freeze > requirements.txt
 
-To create a virtual environment 
-py -m venv venv 
+A. # deactivate and delete venv before creating a new venv
 
-activate venv 
+1. To create a virtual environment 
+    py -m venv venv 
+    or python -m venv venv
+
+2. activate venv a (venv) shold appear before the file path in terminal ie "(venv) PS C:\Users\ihiggins\Desktop\cache_hydro_data>"
 .\venv\Scripts\activate 
 
+3. install required packagews
+    pip install -r requirements.txt
+    I often need to update pip? -m pip install --upgrade pip
 
-this should install requirements.txt
 
-pip install -r requirements.txt
+B. to deactivate venv
+    "deactivate"
 
+C. To make requirements.txt 
+1. if requirements.txt exists delete it first (you may be able to update?) * updating may be prefered
+2. run py -m pip freeze > requirements.txt
+3. I have had iuuses with having extra packages show up in my requirements.txt so it may be best to just modify the existing file
 
  Note: you may have to use python, or python3 instead of py
