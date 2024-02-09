@@ -359,15 +359,82 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
     #df = df.sort_values(by = ['relative_month'])
 
         # calculate difference
-        df['difference'] = abs(df['corrected_data']-df['comparison'])
-        df.loc[pd.isna(df['corrected_data']), "difference"] = np.nan
-        df.loc[pd.isna(df['comparison']), "difference"] = np.nan
+        #df['difference'] = abs(df['corrected_data']-df['comparison'])
+        #df.loc[pd.isna(df['corrected_data']), "difference"] = np.nan
+        #f.loc[pd.isna(df['comparison']), "difference"] = np.nan
 
 
-        # rolling daily mean
-        ### 7 day rolling average parameter
-        #df[f'daily_rolling_mean'] = df.groupby(["watershed", "water_year"])[f"{parameter}_daily_mean"].transform(lambda x: x.rolling(7,7, center = True, closed = 'both').mean()).round(2)
+        #df["90_precentile_year_month"] = df.groupby(["year", "month"])["corrected_data"].transform(lambda x: x.quantile(0.1)).round(2)
+        #df["c_90_precentile_year_month"] = df.groupby(["year","month"])["corrected_data"].transform(lambda x: x.quantile(0.1)).round(2)
+        
+        
+        
+        # precent change
+        # Calculate percentage change
+        #df['pct_change'] = df['corrected_data'].pct_change(fill_method = None)
+        #df['avg_pct_change'] = df['pct_change'].mean()
 
+        #df['c_pct_change'] = df['comparison'].pct_change(fill_method = None)
+        #df['c_avg_pct_change'] = df['c_pct_change'].mean()
+
+        #df.loc[df['pct_change'] == 0, "direction"] = 0
+        #df.loc[df['pct_change'] > 0, "direction"] = 1
+        #df.loc[df['pct_change'] < 0, "direction"] = -1
+
+        #df.loc[df['c_pct_change'] == 0, "c_direction"] = 0
+        #df.loc[df['c_pct_change'] > 0, "c_direction"] = 1
+        #df.loc[df['c_pct_change'] < 0, "c_direction"] = -1
+       
+        #df["long_term_mean"] = df.loc[~df["corrected_data"].isnull(), "long_term_mean"] = df["corrected_data"].mean()
+        #df["c_long_term_mean"] = df.loc[~df["comparison"].isnull(), "c_long_term_mean"] = df["comparison"].mean()
+
+        # high/low pulse count
+        # identify pulses above long-term-mean *2 and long-term-mean/2 and stores to 'pulse'
+        #df.loc[(~df["corrected_data"].isnull()) & (df['corrected_data'] <= df['long_term_mean']/2), "pulse"] = "low_pulse"
+        #df.loc[(~df["corrected_data"].isnull()) & (df['corrected_data'] >= df['long_term_mean']*2), "pulse"] = "high_pulse"
+        #df.loc[(~df["corrected_data"].isnull()) & (df['corrected_data'] >= df['long_term_mean']*2) & (df["pulse"].isnull()) , "pulse"] = "false"
+        #df["pulse"].fillna('false', inplace=True)
+
+        #df.loc[(~df["comparison"].isnull()) & (df['comparison'] <= df['c_long_term_mean']/2), "c_pulse"] = "low_pulse"
+        #df.loc[(~df["comparison"].isnull()) & (df['comparison'] >= df['c_long_term_mean']*2), "c_pulse"] = "high_pulse"
+        #df.loc[(~df["comparison"].isnull()) & (df['comparison'] >= df['c_long_term_mean']*2) & (df["c_pulse"].isnull()) , "c_pulse"] = "false"
+        
+        
+        
+        
+        #["c_pulse"].fillna('false', inplace=True)
+
+        #df["90_precentile_difference"] = df["90_precentile"]-df["c_90_precentile"]
+        #### 95th precentile (low)
+      
+        #### 90th precentile (low)
+        #df["90_precentile"] = df["corrected_data"].quantile(0.1).round(2)
+        #df["c_90_precentile"] = df["comparison"].quantile(0.1).round(2)
+       
+        #### 90th precentile (low)
+        #df["90_precentile_monthly"] = df.groupby(["month"])["corrected_data"].transform(lambda x: x.quantile(0.1)).round(2)
+        #df["c_90_precentile_monthly"] = df.groupby(["month"])["comparison"].transform(lambda x: x.quantile(0.1)).round(2)
+        #df["90_precentile_difference"] = (df["90_precentile_monthly"]-df["c_90_precentile_monthly"]).round(2)
+
+
+
+        ### 10th precentile (high flow)
+        #df["05_precentile_monthly"] = df.groupby(["month"])["corrected_data"].transform(lambda x: x.quantile(0.95)).round(2)
+        #df["c_05_precentile_monthly"] = df.groupby(["month"])["comparison"].transform(lambda x: x.quantile(0.95)).round(2)
+        #df["05_precentile_difference"] = (df["05_precentile_monthly"]-df["c_05_precentile_monthly"]).round(2)
+       
+      
+
+        #print("search")
+        #df["fill"] = np.nan
+        #df.loc[(df["fill"].isnull()) & (~df['comparison'].isnull()) & (df['comparison'] <= df["c_90_precentile_monthly"]), "fill"] = df["comparison"] + df["90_precentile_difference"]
+        #df.loc[(~df['comparison'].isnull()) & (df['comparison'] <= df["c_90_precentile_monthly"]), "90_precentile_fill"] = df["comparison"] + df["90_precentile_difference"]
+        
+        #df.loc[(df["fill"].isnull()) & (~df['comparison'].isnull()) & (df['comparison'] <= df["c_80_precentile_monthly_rolling"]), "fill"] = df["comparison"] + df["80_precentile_difference"]
+        #df.loc[(~df['comparison'].isnull()) & (df['comparison'] <= df["c_80_precentile_monthly_rolling"]), "80_precentile_fill"] = df["comparison"] + df["80_precentile_difference"]
+
+        #df.loc[(df["fill"].isnull()) & (~df['comparison'].isnull()) & (df['comparison'] >= df["c_05_precentile_monthly"]), "fill"] = df["comparison"] + df["05_precentile_difference"]
+        #df.loc[(~df['comparison'].isnull()) & (df['comparison'] >= df["c_05_precentile_monthly"]), "05_precentile_fill"] = df["comparison"] + df["05_precentile_difference"]
         # rolling sum
         #df['rolling_sum'] = df['companion'].rolling(window=3, min_periods=1).sum()
         #df = df.sort_values(by=['c_relative_water_year', 'c_relative_month', "datetime"], ascending=True)
@@ -381,14 +448,39 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
        
         # this works the best so far because anything at day resolution cuts off peaks 
         # sort by average parameter then month
-
+        
         # this actually worked the best
-        df.loc[df['data'].isnull() | (df['data'] == ''), 'data'] = df["comparison"]
+      
+        #set estimate to numeric
+        df['estimate'] = pd.to_numeric(df['estimate'], errors='coerce')
+        # set estimate to true
+        df.loc[pd.isna(df["data"]), 'estimate'] = 1
+        # delete estimated data
+        df.loc[(df['estimate'].isnull() | df['estimate'] == 1), 'data'] = np.nan
+        df.loc[(df['estimate'].isnull() | df['estimate'] == 1), 'corrected_data'] = np.nan
+        
+        # if row estimate is going from zero to 1 set 
+        #update_observation_stage = 
 
+        # Apply the lambda function to update observation_stage column
+        #update_observation_stage = lambda x: x['corrected_data'] if x['estimate'] == 1 and x.shift(1)['estimate'] == 0 else x['observation_stage']
+        # calculate interpolation offset
+        df.loc[(~pd.isna(df["comparison"]) & ~pd.isna(df["data"])), "interpolation_offset"] = df["comparison"] - df['data']
+        # fill offset
+        df["interpolation_offset"].interpolate( method='linear', inplace=True, axis=0, limit_direction='both')
+        df.loc[pd.isna(df["data"]), 'data'] = df["comparison"]-df["interpolation_offset"]
+        df = df.drop(columns=["interpolation_offset"])
+
+        # calculate interpolation offset
+        df.loc[(~pd.isna(df["comparison"]) & ~pd.isna(df["corrected_data"])), "interpolation_offset"] = df["comparison"] - df['corrected_data']
+        # fill offset
+        df["interpolation_offset"].interpolate( method='linear', inplace=True, axis=0, limit_direction='both')
+        df.loc[pd.isna(df["corrected_data"]), 'corrected_data'] = df["comparison"]-df["interpolation_offset"]
+        df = df.drop(columns=["interpolation_offset"])
+        
         #df = df.sort_values([f"comparison", "month"], ascending=True)
         #df["corrected_data"] = df["corrected_data"].fillna(method = "bfill")
         
-
 
         
         #df = df.sort_values(["c_relative_month", "comparison"], ascending=True)
@@ -455,70 +547,42 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         df = df.drop(columns=["c_day_mean"])
 
         df = df.drop(columns=['c_relative_month'])
-        # drop difference
-        df = df.drop(columns=['difference'])
+        
 
 
         df = df.drop(columns=['c_relative_water_year'])
         df = df.drop(columns=['water_year'])
 
-        #df = df.drop(columns=['mean_rolling_sum'])
-        #df = df.drop(columns=['rolling_sum'])
-        
-        #df["comparison"]
-    #    df["difference"] = df["corrected_data"] - df["comparison"]
 
-    #    df["c_month_mean"] = df.groupby(["month"])["comparison"].transform("mean")
-    #    df["week"] = df.datetime.dt.strftime('%U')
-    #    df["c_week_mean"] = df.groupby(["week"])["comparison"].transform("mean")
-   
-   
-    '''
-    if "comparison" in df.columns(): # if there is something to compare with
-        # create constrain columns
-        #df['min'] = df.groupby(["corrected_data"])[parameter].transform("min").round(2)   
-        #df['max'] = df.groupby(["corrected_data"])[parameter].transform("max").round(2)  
-    
-        #if (parameter == "discharge") or (parameter == "water_temperature"):
-           
-            # sort by datetime
-        df = df.sort_values(["datetime"], ascending=False)
-            # create month helper column
-            # since data is sorted on datetime, data should sort within the month, month provides a good balance in resolution
-        #df["month"] = df.datetime.dt.strftime('%m')
-        df = df.sort_values(['datetime'], ascending=True)
-
-            # grouping by watershed doesnt do anything because zero values for watershed wont be filled
-        df[f'average_{parameter}'] = df.groupby(["datetime"])[["corrected_data", "comparison"]].transform("mean").round(2)
-        
-            # this works the best so far because anything at day resolution cuts off peaks 
-            # sort by average parameter then month
-        df = df.sort_values([f"average_{parameter}"], ascending=True)
-        
-            # this works pretty well
-        df["corrected_data"] = df["corrected_data"].fillna(method = "bfill")
-        df["corrected_data"] = df["corrected_data"].fillna(method = "bfill")
-        #df["corrected_data"] = df.groupby(["watershed"])[parameter].fillna(method = "bfill")
-        df = df.drop(columns=["month"])
-        df.reset_index(inplace=True)
-            # turn less then zeros into zeros, only a few -.01 values that should really be zero
-        if parameter == "water_temperature":
-            df.loc[df[parameter] < 0, parameter]  = 0
-
-        
-        print("comparison interpolation complete3")
        
-        print(df)
-        # filter by constraints
-        # set data greater then max to max value
-        #df.loc[df[parameter] > df['max'], parameter] = df['max']
-        # set data less then min value to value
-        #df.loc[df[parameter] < df['min'], parameter] = df['min']
-        # graph
-        #average_value_graph(df, parameter, study)
-        #df = df.drop([f'average_{parameter}'], axis=1)
+
+        #df = df.drop(columns=[f'quantile'])
+        #df = df.drop(columns=[f'c_quantile'])
+
+        #df = df.drop(columns=[f"90_precentile"])
+        #df = df.drop(columns=[f"c_90_precentile"])
+
         
-        '''
+    
+
+        #df = df.drop(columns=[f"90_precentile_monthly"])
+        #df = df.drop(columns=[f"c_90_precentile_monthly"])
+        #df = df.drop(columns=[f"90_precentile_difference"])
+
+        
+        #df = df.drop(columns=[f"05_precentile_monthly"])
+        #df = df.drop(columns=[f"c_05_precentile_monthly"])
+        #df = df.drop(columns=[f"05_precentile_difference"])
+
+        #df = df.drop(columns=[f"fill"])
+        #df = df.drop(columns=[f"90_precentile_fill"])
+        #df = df.drop(columns=[f"80_precentile_fill"])
+        #df = df.drop(columns=[f"05_precentile_fill"])
+
+        
+
+       
+       
 
     df = df.sort_values(by='datetime', ascending=True)
     #df.to_csv(r"C:/Users/ihiggins/OneDrive - King County/Documents/df_relative_wy.csv")

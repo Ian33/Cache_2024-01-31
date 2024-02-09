@@ -24,3 +24,9 @@ C. To make requirements.txt
 3. I have had iuuses with having extra packages show up in my requirements.txt so it may be best to just modify the existing file
 
  Note: you may have to use python, or python3 instead of py
+
+ D. Install  packages
+ [py/python] is the python interpreter
+ [-m] module: allows you to run python modules as a Scripts
+ [pip/conda] package manager
+ [py] [-m] [pip] install [package]
