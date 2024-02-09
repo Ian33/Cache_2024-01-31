@@ -225,14 +225,14 @@ def parameter_graph(df, site_code, site_name, parameter):
             
     if f"corrected_data" in df.columns:
             if df.corrected_data.mean() > df.data.mean()+10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
-                secondary = True
+                corrected_secondary = True
             else:
-                 secondary = False
+                 corrected_secondary = False
             fig.add_trace(go.Scatter(
                     x=df.loc[:, "datetime"],
                     y=df.loc[:, f"corrected_data"],
                     line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
-                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
+                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=corrected_secondary),
            
     # special graph
     if f"{derived_parameter}" in df.columns:
@@ -322,7 +322,7 @@ def parameter_graph(df, site_code, site_name, parameter):
             mode='markers',
             marker=dict(
                 color=color_map.get(f"field_observation", 'black'), size=12, opacity=.9),
-            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=secondary,)
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=corrected_secondary,)
             annotations(obs)
     row_count = row_count+1
     
