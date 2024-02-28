@@ -1,43 +1,16 @@
 import pandas as pd
 import datetime as dt
 import configparser
-import configparser
-from sqlalchemy import create_engine
-import pandas as pd
-import configparser
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-
-from scipy.signal import find_peaks, find_peaks_cwt
-#import dash_core_components as dcc
+import plotly.graph_objs as go
+#import dash_core_components as d
 from dash import dcc
 from dash import html
-#import dash_html_components as html
-#import dash_table
-
-import pandas as pd
-
 import plotly.io as pio
 pio.kaleido.scope.default_format = "svg"
-import plotly.graph_objs as go
-import numpy as np
 from plotly.subplots import make_subplots
-
-import plotly.graph_objs as go
 import numpy as np
-from plotly.subplots import make_subplots
 import datetime as dt
-import pandas as pd
-
-from plotly.subplots import make_subplots
-
-import configparser
-import plotly.io as pio
-import os
-import plotly.graph_objs as go
-import numpy as np
-from plotly.subplots import make_subplots
 
 if not os.path.exists("images"):
     os.mkdir("images")
@@ -362,25 +335,38 @@ def save_fig(df, site_code, site_name, parameter):
 
     # Use plotly.io.write_image to export the figure as a PDF
     pio.write_image(fig, file_path, format='pdf')
-    # Update layout with fixed dimensions
-    #fig.update_layout(autosize=True, width=paper_width, height = paper_height)
+   
+def format_cache_data(df_raw, parameter):
+    '''takes a raw df from cache, and does some pre-processing and adds settings'''
+    '''returns df to cache, which sends df back to this program'''
+    '''as this program is used in multiple parts of cache and is still in dev,
+        this is a good workaround from having to copy and paste the dev code'''
+    end_time = df_raw.tail(1)
+    end_time['datetime'] = pd.to_datetime(
+    end_time['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
+    end_time['datetime'] = end_time['datetime'].map(
+        lambda x: dt.datetime.strftime(x, '%Y_%m_%d'))
+    end_time = end_time.iloc[0, 0]
 
-    # Use write_image to export the figure with fixed dimensions
-    #image_path = f"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{site_name}_{parameter}_{end_date}.jpeg"
-    #image_path = r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\t {0}_{1}_{2}.pdf".format(site_name, parameter, end_date)
-    #image_path = f"images\{site_name}_{parameter}_{end_date}.jpeg"
-    #os.makedirs(directory, exist_ok=True)
+    df_raw['datetime'] = pd.to_datetime(
+        df_raw['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
+    df_raw['datetime'] = df_raw['datetime'].map(
+        lambda x: dt.datetime.strftime(x, '%Y-%m-%d %H:%M:%S'))
 
-    #pio.write_image(fig, image_path, width=paper_width, height=paper_height)
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site_name, parameter, end_date), format='pdf', engine="kaleido")
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site, parameter, end_date), format='pdf', engine="kaleido")
-    #scale = 1
-    
-    #fig.set_size_inches(11.69,8.27)
-    
-    #scale=1, width=1000, height=800
-    # save as pdf
-    #fig.update_layout(font_family="Serif", font_size=12)
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site_name, parameter, end_date), format='pdf', engine="kaleido")
-    # save as html
-    #fig.write_html(r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\t {0}_{1}_{2}.html".format(site, parameter, end_date))
+
+    if parameter == "water_level" or parameter == "LakeLevel":
+        observation = "observation_stage"
+       # df_raw = df_raw[["datetime", "data", "corrected_data"]]
+    elif parameter == "groundwater_level" or parameter == "Piezometer":
+        observation = "observation_stage"
+    elif parameter == 'water_temperature':
+        observation = "parameter_observation"
+    elif parameter == 'Conductivity' or 'conductivty':
+        observation = "parameter_observation"
+        #parameter = "Conductivity"
+
+    elif parameter == "discharge" or parameter == "FlowLevel":
+        #parameter = "discharge"
+        df_raw = df_raw
+        observation = "q_observation"
+    return df_raw, parameter, observation, end_time

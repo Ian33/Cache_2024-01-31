@@ -10,9 +10,7 @@ import pandas as pd
 import plotly.graph_objs as go
 import numpy as np
 from scipy import stats, interpolate
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split
+
 
 def fill_timeseries(data):
     data.drop_duplicates(subset=['datetime'], keep='first', inplace=True)
@@ -60,45 +58,7 @@ def fill_timeseries(data):
     
     return data
 
-def interpolate_function(df):
-    #df.dropna(subset=["comparison"], inplace=True)
-    df.to_csv(r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/interp_input.csv")
-    training_data = df[df.estimate == 0]
-    training_data  = training_data.dropna(subset=["comparison"])
-    training_data  = training_data.dropna(subset=["corrected_data"])
-    
-    # x independent - comparison
-    # y dependent - missing data/ corrected_data
-    
-    # interpolate only works wit linear
-    #interpolate_1d = interp1d(x_array, y_array, fill_value="extrapolate")
-    
-    # you can use multiple x sites but dont reshape then
-    #scaler = StandardScaler().fit(xtrain.values)
-    #https://www.google.com/search?q=fill+missing+hydrology+time+series+data+in+python&rlz=1C1GCEB_enUS963US963&oq=fi&aqs=chrome.0.69i59j69i57j46i131i433j69i60j69i61j69i60l3.1785j1j4&sourceid=chrome&ie=UTF-8#fpstate=ive&vld=cid:b0109594,vid:2NAJUCxFSso
-    
-    # x independent (comparison) y dependent (corrected_data)
-    # train test split
-    x_train, x_test, y_train, y_test = train_test_split(training_data["comparison"].to_numpy().reshape(-1, 1), training_data["corrected_data"].to_numpy().reshape(-1, 1),random_state=1)
-    #scaler
-    scaler=StandardScaler().fit(x_train)
-    x_train_scaled = scaler.transform(x_train)
-    x_test_scaled = scaler.transform(x_test)
-    regr = MLPRegressor(random_state=1, max_iter=5000).fit(x_train_scaled, np.ravel(y_train))
-    #ypredict = regr.predict(x_train_scaled)
-    print(regr.score(x_test_scaled, y_test))
 
-    for index, row in df.iterrows():
-        if (row['estimate'] == 1 or np.isnan(row['corrected_data']) or 'corrected_data' == 'nan' or 'corrected_data' == "") and not np.isnan(row['comparison']):
-            rowscaled = scaler.transform(np.array(row["comparison"], dtype=object).reshape(-1, 1))
-            df.loc[index,['data']] = regr.predict(rowscaled)
-            df.loc[index,['estimate']] = 1
-  
-        else: 
-             df.loc[index,['corrected_data']] = df.loc[index,['corrected_data']]
-    df.to_csv(r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/comparison.csv")
-    return df
-   
 
 
 def data_conversion(df, parameter):

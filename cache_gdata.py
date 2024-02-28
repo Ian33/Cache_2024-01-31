@@ -891,7 +891,6 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
             df_raw.drop(columns=['comparison'], inplace=True)
 
-        from cache_graph import graph_display
             #if (df_raw.empty or len(df_raw.columns) < 1):
             #    return dash.no_update
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
@@ -923,15 +922,11 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
         from graph_2 import cache_graph_export
         fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
-        #if not dff.empty:
-        #    fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
-         #if 'run_job' not in changed_id and not dff.empty and realtime_update is False:
          #    return dash.no_update
         if realtime_update is False:
             realtime_update_info = "realtime updating  - paused - "
         if realtime_update is True:
             realtime_update_info = "realtime updating"
-        
         
         #return df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], [], True, fig
         return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True, fig
@@ -950,8 +945,6 @@ def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'upload_data_button' not in changed_id:
         return dash.no_update
-    
-    #today = pd.to_datetime("today")
 
     elif 'upload_data_button' in changed_id:
         df = pd.DataFrame(rows)
@@ -960,10 +953,7 @@ def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
         if (df.empty or len(df.columns) < 1):
             return dash.no_update
         else:
-
-            from cache_graph import graph
-            #from cache_graph import save_fig
-            from cache_graph import format_cache_data
+            from graph_2 import format_cache_data, save_fig
             # IF THERE is existing eata drop it
             if "existing_data" in df.columns:
                 df = df.loc[df.existing_data.isnull()]
@@ -973,9 +963,6 @@ def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
             df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
-
-            from graph_2 import save_fig
-            #fig = graph_display(df_raw, site, Parameter_value, observation)
             
             save_fig(df, site_sql_id, site, parameter)
             from sql_upload import full_upload
@@ -1022,9 +1009,7 @@ def run_export_data(n_clicks, rows, parameter, site_sql_id, site):
     
     if 'export_data_button' in changed_id:
         df_raw = pd.DataFrame(rows)
-        #from cache_graph import graph
-        #from cache_graph import save_fig
-        from cache_graph import format_cache_data
+        from graph_2 import format_cache_data, save_fig
         if (df_raw.empty or len(df_raw.columns) < 1):
             return dash.no_update
         else:
@@ -1034,10 +1019,6 @@ def run_export_data(n_clicks, rows, parameter, site_sql_id, site):
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
             df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
-
-            from graph_2 import save_fig
-            #fig = graph_display(df_raw, site, Parameter_value, observation)
-            #fig = parameter_graph(df, site_sql_id, site, parameter)
             save_fig(df, site_sql_id, site, parameter)
 
             result = "  exported"

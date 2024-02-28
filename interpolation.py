@@ -1,117 +1,9 @@
 import pandas as pd
 
-import plotly.io as pio
 #pio.kaleido.scope.default_format = "svg"
 import plotly.graph_objs as go
 import numpy as np
 from plotly.subplots import make_subplots
-
-def interpolate_function(df):
-    #from cao_hydrology_analysis_graph import average_value_graph
-    df = pd.read_json(r"cao_hydrology/{}_from_sql_{}.json".format (parameter, study), orient ='split', compression = 'infer')
-    df = df.sort_values(by=["datetime"])
-    
-    if "site_id" in df.columns:
-        df = df.drop(columns = "site_id")
-    # create an average value for all sites across each timestamp  
-
-    # create constrain columns
-    df['min'] = df.groupby(["watershed"])[parameter].transform("min").round(2)   
-    df['max'] = df.groupby(["watershed"])[parameter].transform("max").round(2)  
-    
-    
-    if (parameter == "discharge") or (parameter == "water_temperature"):
-        #print(df.loc[df.watershed == "north_seidel_creek"].head(5))
-        
-
-        # sort by datetime
-        df = df.sort_values(["watershed","water_year", "datetime"], ascending=False)
-        # create month helper column
-        # since data is sorted on datetime, data should sort within the month, month provides a good balance in resolution
-        df["month"] = df.datetime.dt.strftime('%m')
-        df = df.sort_values(["watershed", "water_year", 'datetime'], ascending=True)
-
-        # grouping by watershed doesnt do anything because zero values for watershed wont be filled
-        df[f'average_{parameter}'] = df.groupby(["datetime"])[parameter].transform("mean").round(2)
-       
-        # this works the best so far because anything at day resolution cuts off peaks 
-        # sort by average parameter then month
-        df = df.sort_values([f"average_{parameter}", "month"], ascending=True)
-       
-        # this works pretty well
-        df[parameter] = df.groupby(["watershed"])[parameter].fillna(method = "bfill")
-        df = df.drop(columns=["month"])
-        df.reset_index(inplace=True)
-        # turn less then zeros into zeros, only a few -.01 values that should really be zero
-        if parameter == "water_temperature":
-              df.loc[df[parameter] < 0, parameter]  = 0
-
-       
-
-       
-       
-    if parameter == "conductivity":
-        print("interpolate conductivity")
-        # remove bad values
-        if parameter == "conductivity" and study == 1:
-            #print(df.loc[(df.watershed == "south_seidel_creek") & (df[parameter] == 5.2)])
-            df.loc[(df.watershed == "south_seidel_creek") & (df[parameter] == 5.2), parameter] = np.nan
-        # import interpolated discharge data
-        df_q = pd.read_json(r"cao_hydrology/{}_cao_cleaned_data_{}.csv".format ("discharge", study), orient ='split', compression = 'infer')
-        df_q = df_q[["watershed", "water_year", "datetime", "discharge"]]
-
-        df = df.merge(df_q, on = ["watershed", "water_year", "datetime"], how = "right")
-        df['site_code'] = df.groupby('watershed')['site_code'].fillna(method = 'bfill')
-        df['type'] = df.groupby('watershed')['type'].fillna(method = 'bfill')
-        df.loc[df.est == np.nan, "est"] = "TRUE"
-
-        # remove data abnormalities top .03% of data
-        df['c_90'] = df.loc[df.conductivity > 0].groupby(["watershed", "water_year"])["conductivity"].transform(lambda x: x.quantile(0.97))
-        df['c_90'] = df.loc[df.conductivity > 0].groupby(["watershed", "water_year"])['c_90'].transform(lambda x: x.mean()).round(2)
-        df.loc[df.conductivity >= df.c_90, "conductivity"] = np.nan
-
-        df = df.sort_values(["watershed", "datetime"], ascending=True)
-        df[parameter] = df.groupby(by = ["watershed", "water_year", "discharge"])[parameter].apply(lambda x: x.interpolate(method='linear'))
-        df = df.sort_values(["datetime"], ascending=False)
-        
-        df = df.sort_values(["watershed", "discharge"], ascending=True)
-        df[parameter] = df.groupby(by = ["watershed", "water_year"])[parameter].apply(lambda x: x.interpolate(method='linear'))
-        df = df.sort_values(["watershed", "datetime"], ascending=True)
-        df[parameter] = df.groupby(by = ["watershed"])[parameter].apply(lambda x: x.interpolate(method='linear'))
-       
-        df[f'average_{parameter}'] = df[parameter]
-      
-        
-        # reset index, not sure if it is actually needed, was part of qa routine
-        
-        df.set_index(["watershed", "datetime"], inplace=True)
-        df.sort_values(by = ["watershed", "datetime"], inplace=True)
-        df.reset_index(inplace=True)
-
-        # drop conductivity helper columns
-        df = df.drop(['discharge'], axis=1)
-        df = df.drop(['c_90'], axis=1)
-    
-    # filter by constraints
-    # set data greater then max to max value
-    df.loc[df[parameter] > df['max'], parameter] = df['max']
-    # set data less then min value to value
-    df.loc[df[parameter] < df['min'], parameter] = df['min']
-    # graph
-    #average_value_graph(df, parameter, study)
-    df = df.drop([f'average_{parameter}'], axis=1)
-    
-    
-
-    # interpolate filter
-    # study 1
-    shed = "weiss_creek"
-    df.loc[df.watershed == shed].to_csv(r"C:/Users/ihiggins/OneDrive - King County/{}_{}_{}_interpolate.csv".format(shed, parameter, study))
-    shed = "north_seidel_creek"
-    df.loc[df.watershed == shed].to_csv(r"C:/Users/ihiggins/OneDrive - King County/{}_{}_{}_interpolate.csv".format(shed, parameter, study))
-    
-    df.to_json(r"cao_hydrology/{}_cao_cleaned_data_{}.csv".format(parameter, study), orient = 'split', compression = 'infer', index = 'false')
-    print(f"interpolate {parameter} complete")
 
 
 color_map = {
@@ -450,7 +342,20 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         # sort by average parameter then month
         
         # this actually worked the best
-      
+        ### difference
+        df["difference"] = df['corrected_data'].diff().round(2)
+        df["c_difference"] = df['comparison'].diff().round(2)
+
+        df.loc[df["difference"] > 0, "rise_fall"] = 1
+        df.loc[df["difference"] < 0, "rise_fall"] = -1
+        df.loc[df["difference"] == 0, "rise_fall"] = 0
+
+        df.loc[df["c_difference"] > 0, "c_rise_fall"] = 1
+        df.loc[df["c_difference"] < 0, "c_rise_fall"] = -1
+        df.loc[df["c_difference"] == 0, "c_rise_fall"] = 0
+
+        df["difference"] = df["difference"].round(2)
+        df["c_difference"] = df["c_difference"].round(2)
         #set estimate to numeric
         df['estimate'] = pd.to_numeric(df['estimate'], errors='coerce')
         # set estimate to true
@@ -458,6 +363,19 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         # delete estimated data
         df.loc[(df['estimate'].isnull() | df['estimate'] == 1), 'data'] = np.nan
         df.loc[(df['estimate'].isnull() | df['estimate'] == 1), 'corrected_data'] = np.nan
+        
+        # works well "c_rise_fall", 'c_difference' but still kinda jumpy
+        # works well "c_rise_fall", 'c_difference', 'comparison' but a bit jumpy and very restrictive
+        # test fill
+        df['test'] = df.groupby(["c_rise_fall", 'c_difference', 'comparison'])['corrected_data'].apply(lambda x: x.interpolate(method='linear', limit_direction='both', limit_area = "inside"))
+        # calculate interpolation offset test
+        df.loc[(~pd.isna(df["comparison"]) & ~pd.isna(df["corrected_data"])), "interpolation_offset"] = df["comparison"] - df['corrected_data']
+        # fill offset
+        df["interpolation_offset"].interpolate( method='linear', inplace=True, axis=0, limit_direction='both')
+        df.loc[pd.isna(df["corrected_data"]), 'test'] = df["test"]-df["interpolation_offset"]
+        df = df.drop(columns=["interpolation_offset"])
+        
+        
         
         # if row estimate is going from zero to 1 set 
         #update_observation_stage = 
@@ -529,7 +447,7 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         # df["corrected_data"] = df["corrected_data"].fillna(method = "bfill")
         #df['corrected_data'] = df.groupby(['c_relative_water_year'])['corrected_data'].apply(lambda x: x.ffill().bfill())
         
-        #df.to_csv(r"C:/Users/ihiggins/OneDrive - King County/Documents/compare.csv")
+        df.to_csv(r"C:/Users/ihiggins/OneDrive - King County/Documents/compare.csv")
         df = df.sort_values([f"datetime"], ascending=True)
         # drop year column
         df = df.drop(columns=['year'])
@@ -553,8 +471,12 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         df = df.drop(columns=['c_relative_water_year'])
         df = df.drop(columns=['water_year'])
 
-
+        df = df.drop(columns=['difference'])
+        df = df.drop(columns=['c_difference'])
+        df = df.drop(columns=["rise_fall"])
+        df = df.drop(columns=["c_rise_fall"])
        
+        df = df.drop(columns=['test'])
 
         #df = df.drop(columns=[f'quantile'])
         #df = df.drop(columns=[f'c_quantile'])
