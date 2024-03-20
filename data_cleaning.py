@@ -10,9 +10,7 @@ import pandas as pd
 import plotly.graph_objs as go
 import numpy as np
 from scipy import stats, interpolate
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split
+
 
 def fill_timeseries(data):
     data.drop_duplicates(subset=['datetime'], keep='first', inplace=True)
