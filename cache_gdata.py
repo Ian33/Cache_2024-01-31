@@ -22,11 +22,12 @@ import numpy as np
 from sqlalchemy import create_engine
 import urllib
 import plotly.graph_objs as go
+import datetime as dt
 # long call back 
 # https://dash.plotly.com/long-callbacks
 ## launch a new web browser
 from web_browser import launch_web_broswer
-launch_web_broswer()
+# launch_web_broswer()
 
 ## fix copy of slice error with df.loc[df.A > 5, 'A'] = 1000
 
@@ -68,7 +69,7 @@ Discharge_DateTime = 'D_TimeDate'
 Site_Table = 'tblGaugeLLID'
 
 # Gives a string of available parameters to the SQL query
-Available_Parameters = 'AirTemp, Barometer, Conductivity, DO, FlowLevel, Humidity, LakeLevel, pH, Piezometer, Precip, Relative_Humidity, SolarRad, Turbidity, WaterTemp, Water_Quality, Wind'
+Available_Parameters = 'AirTemp, barometer, Conductivity, DO, FlowLevel, Humidity, LakeLevel, pH, Piezometer, Precip, Relative_Humidity, SolarRad, Turbidity, WaterTemp, Water_Quality, Wind'
 #filepath = r'C:/Users/ihiggins/cache.pkl'
 #pickle.dump(Available_Parameters, open(filepath, 'wb'))
 # Available_Parameters = Available_Parameters.tolist()
@@ -102,22 +103,13 @@ app.layout = html.Div([
     # dcc.Location(id='url', refresh=False),
     # Select a Site
     # Site = site name site_sql_id is site number
-    dcc.Dropdown(
-        id='site',
-        options=[{'label': i, 'value': i} for i in vlist],
-        value='0', style={'display': 'block'}), html.Div(id='site_sql_id', style={'display': 'none'}),
+    dcc.Dropdown(id='site', options=[{'label': i, 'value': i} for i in vlist], value='0', style={'display': 'block'}), 
+    html.Div(id='site_sql_id', style={'display': 'none'}),
 
     # Select a Parameter - get options from callback
-    html.Div(
-        dcc.Dropdown(id='Parameter', value='0'),
-        # Create element to hide/show, in this case an 'Input Component'
-        # <-- This is the line that will be changed by the dropdown callback
-        style={'display': 'block'}
-    ),
-    # toggle between SQL query and file upload
-    html.Div(
-        daq.ToggleSwitch(id='Select_Data_Source', value=False),
-    ),
+    html.Div(dcc.Dropdown(id='Parameter', value='0'), style={'display': 'block'}),
+   
+    html.Div(daq.ToggleSwitch(id='Select_Data_Source', value=False),),   # toggle between SQL query and file upload
     html.Div(id='Select_Data_Source_Output'),
 
     # Barometric Correction Radio Button
@@ -131,16 +123,12 @@ app.layout = html.Div([
                            {'label': 'Do Not Preform Barometric Correction',
                                'value': 'No_Baro'}
                        ], value='No_Baro'), style={'display': 'block'}  # <-- This is the line that will be changed by the dropdown callback
-    ),
+        ),
 
     html.Div(
         dcc.Dropdown(
-            id='Available_Barometers',
-            options=[{'label': i, 'value': i} for i in Available_Baros],
-            value="0",
-            style={'display': 'none'}
+            id='Available_Barometers', options=[{'label': i, 'value': i} for i in Available_Baros], value="0", style={'display': 'none'}),
         ),
-    ),
     html.Button('Delete Association', id='Delete_Association', n_clicks=0),
     html.Div(id='New_Callback'),
     # Import file structures
@@ -153,7 +141,7 @@ app.layout = html.Div([
                         {'label': 'aqua4plus_ct2x', 'value': 'aqua4plus_ct2x'},
                         {'label': 'csv', 'value': 'csv'}],
                        value='onset_U20'), style={'display': 'block'}  # <-- This is the line that will be changed by the dropdown callback
-    ),
+        ),
 
     # CSV Trimming
     html.Div([
@@ -165,26 +153,15 @@ app.layout = html.Div([
 
     dcc.Upload(
         id='datatable-upload',
-        children=html.Div([
-            'Drag and Drop or ',
-            html.A('Select Files')
-        ]),
+        children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
         style={
             'width': '100%', 'height': '60px', 'lineHeight': '60px',
             'borderWidth': '1px', 'borderStyle': 'dashed',
             'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'
-        },
-    ),
+        }),
     # date time picker not native to dash see https://community.plotly.com/t/dash-timepicker/6541/10
     
-    html.Div(
-        # startDate and endDate are Dash specific variables
-        dash_datetimepicker.DashDatetimepicker(
-            id='select_range', startDate='', endDate=''),
-        # Create element to hide/show, in this case an 'Input Component'
-        # <-- This is the line that will be changed by the dropdown callback
-        style={'display': 'block'}
-    ),
+    html.Div(dash_datetimepicker.DashDatetimepicker(id='select_range', startDate='', endDate=''),style={'display': 'block'}),
 
     # page_action='none',
     html.Div(
@@ -194,7 +171,7 @@ app.layout = html.Div([
                            {'label': 'data', 'value': 'data'},
                            {'label': 'corrected_data', 'value': 'corrected_data'}
                        ], value='data'), style={'display': 'block'},  # <-- This is the line that will be changed by the dropdown callback
-    ),
+        ),
     # page_action='none',
     html.Div(id='output-container-date-picker-range'),
 
@@ -218,68 +195,59 @@ app.layout = html.Div([
     
     html.Div([
     html.Div(
-        dash_table.DataTable(
-            id="Corrected_Data",
-            editable=True,
-            sort_action="native",
-            sort_mode="multi",
-            fixed_rows={'headers': True},
-            row_deletable=False,
-            page_action='none',
-            style_table={'height': '300px', 'overflowY': 'auto'},
-            virtualization=True,
-            fill_width=False,
-            #filter_action='custom',
-            filter_action = 'native',
-            #filter_query = "'parameter_observation >= 0",
-            style_data={
-                'width': '200px', 'maxWidth': '200px', 'minWidth': '100px', },
-            style_data_conditional=[{'if': {'column_id': 'comparison',}, 'backgroundColor': 'rgb(222,203,228)','color': 'black'},
-                                    #{'if': {'column_id': 'parameter_observation', 'filter_query': '{} > 0'}, 'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                    
-                                    #{'if': {'filter_query': '{parameter_observation} > 0','column_id': 'datetime'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                    #{'if': {'filter_query': '{parameter_observation} > 0','column_id': 'offset'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                    #{'if': {'filter_query': '{observation_stage} > 0','column_id': 'observation_stage'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                    #{'if': {'filter_query': '{observation_stage} > 0','column_id': 'datetime'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                    #{'if': {'filter_query': '{observation_stage} > 0','column_id': 'offset'},  'backgroundColor': 'rgb(179,226,205)','color': 'black'},
-                                   
-                                   # {'if': {'filter_query': '{{parameter_observation}} > {0}'),'backgroundColor': '#FF4136','color': 'white'},
-            ],    
-    
-    ),style={'width': '80%', 'display': 'inline-block'}),
+    dash_table.DataTable(
+        id="Corrected_Data",
+        editable=True,
+        sort_action="native",
+        sort_mode="multi",
+        fixed_rows={'headers': True},
+        row_deletable=False,
+        page_action='none',
+        style_table={'height': '300px', 'overflowY': 'auto'},
+        virtualization=True,
+        fill_width=False,
+        filter_action='native',
+        style_data={'width': '200px', 'maxWidth': '200px', 'minWidth': '100px'},
+        style_data_conditional=[{'if': {'column_id': 'comparison'}, 'backgroundColor': 'rgb(222,203,228)', 'color': 'black'}],
+    ), style={'width': '80%', 'display': 'inline-block'}),
     
     html.Div([
-            html.Div([
-                dcc.Dropdown(id='comparison_site',options=[{'label': i, 'value': i} for i in comparison_list],value='0'), 
-                html.Div(id='comparison_site_sql_id', style={'display': 'none'})
-                    ]),
-            html.Div(dcc.Dropdown(id='comparison_parameter', value='0'),),
-            dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
-            html.Div(html.Button('interpolate', id='interpolate_button')), 
-            html.Div([   
-                html.Button(id="run_job", children="Run Job!"),
-                html.Div([html.P(id="paragraph_id", children=["Button not clicked"])]),
-                html.Div([daq.ToggleSwitch(id='realtime_update'),]), #dynamic default so sql query doesnt automatically correct for obs
+        html.Div([
+            dcc.Dropdown(id='comparison_site',options=[{'label': i, 'value': i} for i in comparison_list],value='0'), 
+            html.Div(id='comparison_site_sql_id', style={'display': 'none'})
+            ]),
+        dcc.Dropdown(id='comparison_parameter', value='0'),
+        dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
+        html.Button('interpolate', id='interpolate_button'), 
+          
+        html.Button(id="run_job", children="Run Job!"),
+        html.P(id="paragraph_id", children=["Button not clicked"]),
+        html.Div([daq.ToggleSwitch(id='realtime_update'),]), #dynamic default so sql query doesnt automatically correct for obs
                 # html.Div([daq.ToggleSwitch(id='realtime_update', value=True),]), default automatically update
-                html.Div(id='realtime_update_info'),
-                ], style={'display': 'inline-block'}),
-            html.Div([
-                html.Div([html.P(id="header_rows_title", children=["add header rows"])]),
-                dcc.Input(id="header_rows", type="number", value = 0,min=0, max=100, step=1,)
-                ], style={'display': 'inline-block'}),
+        html.Div(id='realtime_update_info'),
+        
+        html.P(id="data_label", children=["data column axis"]), 
+        dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+                #dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        html.P(id="corrected_data_label", children=["corrected data column axis"]),
+        dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        html.P(id="derived_data_label", children=["derived data column axis"]),
+        dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        html.P(id="observation_label", children=["observation column axis"]),
+        dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        html.P(id="comparison_label", children=["comparison column axis"]),
+        dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
 
-    ], style={'width': '20%', 'display': 'inline-block'}),
-]),
+        html.P(id="header_rows_title", children=["add header rows"]),
+        dcc.Input(id="header_rows", type="number", value = 0,min=0, max=100, step=1,)
+        ], style={'width': '20%', 'display': 'inline-block'}),
+
   
 
     # fill_width=False, style_data={'width': '200px','maxWidth': '200px','minWidth': '100px',},
     html.Div(
-        dash_table.DataTable(
-            id="Initial_Data_Correction",
-            virtualization=True,
-        ),
-        style={"display": "none"},
-    ),
+        dash_table.DataTable(id="Initial_Data_Correction", virtualization=True,),
+        style={"display": "none"},),
    
     # html.Br(),
     html.Div([  # big block
@@ -290,7 +258,10 @@ app.layout = html.Div([
         html.Div(id='export_data_children', style={'width': '5%', 'display': 'inline-block'}),
     ]),
 
+]),
 ])
+
+
 
 
 # Select file source
@@ -773,7 +744,14 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     #Output("Corrected_Data", "style_data_conditional"),
     # returning a blank df cant have deletable rows
     Output("Corrected_Data", "row_deletable"),
-    Output(component_id='graph_output', component_property='children'),
+    #Output(component_id='graph_output', component_property='children'),
+
+    #Input("data_axis","value"),
+    #Input("corrected_data_axis","value"),
+    #Input("derived_data_axis","value"),
+    #Input("observation_axis","value"),
+    #Input("comparison_axis","value"),
+
     Input("header_rows","value"),
     Input("realtime_update", "value"),
     Input("run_job", "n_clicks"),
@@ -785,11 +763,14 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     Input('select_data_level', 'value'),
     Input('site', 'value'),
     Input('site_sql_id', 'children'),
+    Input('Parameter', 'value'),
+
+    Input('comparison_site', 'value'),
     Input('comparison_site_sql_id', 'children'),
-    Input(component_id='comparison_site', component_property='value'),
-    Input('Ratings', 'value'),
-    Input(component_id='Parameter', component_property='value'),
     Input('comparison_parameter', 'value'),
+    Input('Ratings', 'value'),
+    
+    
     Input("Initial_Data_Correction", "data"),
     Input("Initial_Data_Correction", "columns"),
     Input("Corrected_Data", "data"),
@@ -799,7 +780,7 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     #This example uses running to set the disabled property of the button to True while the callback is running, and False when it completes
    # manager=long_callback_manager,)
     
-def correct_data(header_rows, realtime_update, run_job, interpolate_button, start_date, end_date, checklist, data_level, site, site_sql_id, comparison_site_sql_id, comparison_site, ratings_value, Parameter_value, comparison_parameter, Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
+def correct_data(header_rows, realtime_update, run_job, interpolate_button, start_date, end_date, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
 
     '''Takes dataframe of data and observations from function: get_observations '''
     df = pd.DataFrame(Initial_Data_Correction_row)
@@ -811,7 +792,7 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
     realtime_update_info = "" # placehoulder, I go back and forth bethween pausing the run until data is present and using placeholders
     callback_state = ""
     #fig = go.Figure()
-    fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
+    #fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
     
     # if there is no data to look at dont show data table
     # Input(component_id='Parameter', component_property='value'),
@@ -921,8 +902,8 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
             #            df_raw = df_raw.sort_values(by='datetime', ascending=False)
         
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
-        from graph_2 import cache_graph_export
-        fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
+        #from graph_2 import cache_graph_export
+        #fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
         #if not dff.empty:
         #    fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
          #if 'run_job' not in changed_id and not dff.empty and realtime_update is False:
@@ -934,50 +915,79 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         
         
         #return df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], [], True, fig
-        return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True, fig
+        #return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True, fig
+        return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True
   
+@app.callback(
+        Output(component_id='graph_output', component_property='children'),
+        Input("Corrected_Data", "data"),
+        Input('site', 'value'),
+        Input('site_sql_id', 'children'),
+        Input('Parameter', 'value'),
 
+        Input('comparison_site', 'value'),
+        #Input('comparison_site_sql_id', 'children'),
+        Input('comparison_parameter', 'value'),
+        Input('Ratings', 'value'),
+        Input("data_axis","value"),
+        Input("corrected_data_axis","value"),
+        Input("derived_data_axis","value"),
+        Input("observation_axis","value"),
+        Input("comparison_axis","value"),
+        
+)
+
+def graph(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+    from data_cleaning import reformat_data, parameter_calculation
+    from graph_2 import cache_graph_export
+    df = pd.DataFrame(df)
+    if df.empty:
+        return dash.no_update
+    else:
+        df = reformat_data(df) 
+        
+        fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
+        fig = cache_graph_export(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+
+    return fig
 
 @app.callback(
     dash.dependencies.Output('upload_data_children', 'children'),
     [dash.dependencies.Input('upload_data_button', 'n_clicks')],
     Input('Corrected_Data', 'data'),
-    Input('Parameter', 'value'),
-    Input('site_sql_id', 'children'),
     Input('site', 'value'),
+    Input('site_sql_id', 'children'),
+    Input('Parameter', 'value'),
+    Input('comparison_site', 'value'),
+        #Input('comparison_site_sql_id', 'children'),
+    Input('comparison_parameter', 'value'),
+    Input('Ratings', 'value'),
+    Input("data_axis","value"),
+    Input("corrected_data_axis","value"),
+    Input("derived_data_axis","value"),
+    Input("observation_axis","value"),
+    Input("comparison_axis","value"),
     )
-def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
+def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+    from data_cleaning import reformat_data 
+    from graph_2 import save_fig
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'upload_data_button' not in changed_id:
         return dash.no_update
-    
-    #today = pd.to_datetime("today")
 
     elif 'upload_data_button' in changed_id:
-        df = pd.DataFrame(rows)
+        df = pd.DataFrame(df)
         notes_df = df
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
         if (df.empty or len(df.columns) < 1):
             return dash.no_update
         else:
-
-            from cache_graph import graph
-            #from cache_graph import save_fig
-            from cache_graph import format_cache_data
             # IF THERE is existing eata drop it
             if "existing_data" in df.columns:
                 df = df.loc[df.existing_data.isnull()]
-            df, parameter, observation, end_time = format_cache_data(df, parameter)
-            df_export = df.set_index('datetime')
-            df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
-            df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
-
-            from graph_2 import save_fig
-            #fig = graph_display(df_raw, site, Parameter_value, observation)
             
-            save_fig(df, site_sql_id, site, parameter)
+            
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
             from sql_upload import full_upload
 
             desired_order = ["datetime", "data", "corrected_data", "discharge", "estimate"] # observation and observation_stage are kinda redundent at some point and should be clarified
@@ -1010,35 +1020,50 @@ def run_upload_data(n_clicks, rows, parameter, site_sql_id, site):
     dash.dependencies.Output('export_data_children', 'children'),
     [dash.dependencies.Input('export_data_button', 'n_clicks')],
     Input('Corrected_Data', 'data'),
-    Input('Parameter', 'value'),
-    Input('site_sql_id', 'children'),
     Input('site', 'value'),
+    Input('site_sql_id', 'children'),
+    Input('Parameter', 'value'),
+    Input('comparison_site', 'value'),
+        #Input('comparison_site_sql_id', 'children'),
+    Input('comparison_parameter', 'value'),
+    Input('Ratings', 'value'),
+    Input("data_axis","value"),
+    Input("corrected_data_axis","value"),
+    Input("derived_data_axis","value"),
+    Input("observation_axis","value"),
+    Input("comparison_axis","value"),
     )
-def run_export_data(n_clicks, rows, parameter, site_sql_id, site):
+def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+    from data_cleaning import reformat_data 
+    from graph_2 import save_fig
     ''' uses same function as update graph, this code is becomingly increasingly redundent '''
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'export_data_button' not in changed_id:
         return dash.no_update
     
     if 'export_data_button' in changed_id:
-        df_raw = pd.DataFrame(rows)
-        #from cache_graph import graph
-        #from cache_graph import save_fig
-        from cache_graph import format_cache_data
-        if (df_raw.empty or len(df_raw.columns) < 1):
+        df = pd.DataFrame(df)
+        if (df.empty or len(df.columns) < 1):
             return dash.no_update
         else:
-            df, parameter, observation, end_time = format_cache_data(df_raw, parameter)
-            df_export = df.set_index('datetime')
+             #df, parameter, observation, end_time = format_cache_data(df, site, parameter, fig)
+            df = reformat_data(df)  
+           
+            df_export = df.set_index('datetime').copy()
+            end_time = df["datetime"].max().date().strftime("%Y_%m_%d")
+          
             df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
             df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
 
-            from graph_2 import save_fig
-            #fig = graph_display(df_raw, site, Parameter_value, observation)
-            #fig = parameter_graph(df, site_sql_id, site, parameter)
-            save_fig(df, site_sql_id, site, parameter)
+            df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
+                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+            df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
+                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+
+
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
 
             result = "  exported"
             return result

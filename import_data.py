@@ -76,7 +76,7 @@ def sql_import_all_datetimes(parameter, site_sql_id):
         if parameter == "FlowLevel" or parameter == "discharge":
                 # QUERY Discharge
                 select_statement = f"SELECT DATEADD(HOUR, -7, CONVERT(DATETIME, {config[parameter]['datetime']}, 120)) as datetime, {config[parameter]['data']} as data, {config[parameter]['corrected_data']} as corrected_data, {config[parameter]['discharge']} as discharge, {config[parameter]['est']} as estimate "
-        elif parameter == "barometer":
+        elif parameter == "barometer" or parameter == "Barometer":
                 # barometer (only has "data column")
                 select_statement = f"SELECT DATEADD(HOUR, -7, CONVERT(DATETIME, {config[parameter]['datetime']}, 120)) as datetime, {config[parameter]['corrected_data']} as corrected_data, {config[parameter]['est']} as estimate "
             
@@ -180,3 +180,25 @@ def usgs_data_import(site_number, start_date, end_date):
                 #else:
                 #        print(f"Error: {response.status_code}")
 #usgs_data_import()
+        
+
+def get_site_sql_id(site_id):
+    with sql_engine.begin() as conn:
+        #gage_lookup = pd.read_sql_query('select G_ID, SITE_CODE from tblGaugeLLID;', conn)
+        site_sql_id = pd.read_sql_query(
+                        f"SELECT {config['site_identification']['site_sql_id']} "
+                        f"FROM {config['site_identification']['table']} WHERE {config['site_identification']['site_id']} = '{site_id}';", conn)
+    site_sql_id = site_sql_id.iloc[0, 0]
+    
+    return site_sql_id
+
+def get_horizontal_datum(site_sql_id):
+       #Horiz_datum = datum on ground
+        with sql_engine.begin() as conn:
+        #gage_lookup = pd.read_sql_query('select G_ID, SITE_CODE from tblGaugeLLID;', conn)
+                ground_ele = pd.read_sql_query(
+                        f"SELECT Horiz_datum "
+                        f"FROM {config['site_identification']['table']} WHERE {config['site_identification']['site_sql_id']} = '{site_sql_id}';", conn)
+        ground_ele = ground_ele.iloc[0, 0]
+    
+        return ground_ele

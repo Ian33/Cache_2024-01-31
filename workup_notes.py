@@ -185,3 +185,41 @@ site = "31i"
 workup_notes_main(notes_df, parameter, site_sql_id, site)
 '''
 #7
+from import_data import get_site_sql_id, sql_import, get_horizontal_datum
+#import pyexcel
+
+
+def excel_export(project, site_list, start_date, end_date):
+    all_df = pd.DataFrame(columns=['datetime'])
+    for item in site_list:
+        site_sql_id = get_site_sql_id(item)
+        site_df = sql_import("LakeLevel", site_sql_id, start_date, end_date)
+        if site_df.empty:
+           site_df = sql_import("Piezometer", site_sql_id, start_date, end_date) 
+        site_df = site_df[["datetime", "corrected_data"]]
+        site_df = site_df.rename(columns={'corrected_data': item})
+        ground_ele = get_horizontal_datum(site_sql_id)
+        all_df[f"{item}_ground_ele"] = ground_ele
+        all_df = pd.concat([all_df, site_df], axis=0, ignore_index=True)
+    all_df.set_index('datetime', inplace=True)
+    all_df = round(all_df.resample('D').mean(), 2)
+    all_df.reset_index(inplace=True)
+    ## add ground elevation
+    for item in site_list:
+        ground_ele = get_horizontal_datum(site_sql_id)
+        all_df[f"{item}_ground_ele"] = ground_ele
+        
+    # alphabetical order
+    all_df.set_index('datetime', inplace=True)
+    all_df = all_df.reindex(sorted(all_df.columns), axis=1)
+    all_df.reset_index(inplace=True)
+    print(all_df)
+    all_df.to_csv(f"W:/STS/hydro/GAUGE/Temp/Ian's Temp/{project}.csv", index=False)
+    #all_df.py_tocsv().save_as(records=all_df.to_dict(orient='records'), dest_file_name=r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/taylor_creek.xlsx")
+    #all_df.to_excel(, index=False)
+    
+project = "Taylor Creek"
+site_list = ["TAY_6", "TAY_1", "TAY_7E", "TAY_5", "TAY_3", "TAY_8"]
+start_date = "01/01/2023 0:00" #"%m/%d/%Y %H:%M"
+end_date = "03/01/2024 0:00" #"%m/%d/%Y %H:%M"
+excel_export(project, site_list, start_date, end_date)

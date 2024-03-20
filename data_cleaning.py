@@ -10,9 +10,9 @@ import pandas as pd
 import plotly.graph_objs as go
 import numpy as np
 from scipy import stats, interpolate
-from sklearn.preprocessing import StandardScaler
-from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import train_test_split
+#from sklearn.preprocessing import StandardScaler
+##from sklearn.neural_network import MLPRegressor
+#from sklearn.model_selection import train_test_split
 
 def fill_timeseries(data):
     data.drop_duplicates(subset=['datetime'], keep='first', inplace=True)
@@ -116,8 +116,8 @@ def data_conversion(df, parameter):
     return df
 
 def reformat_data(df):
-    df['datetime'] = pd.to_datetime(df['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
-    
+    if 'datetime' in df.columns:
+        df['datetime'] = pd.to_datetime(df['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
     if 'data' in df.columns:
         df['data'] = df['data'].astype(float, errors="ignore")
         df['data'] = df['data'].round(2)
@@ -182,7 +182,7 @@ def add_comparison_site(comparison_site_sql_id, comparison_parameter, df):
      # add comparison df
 
         from import_data import sql_import
-        print("compare site", comparison_site_sql_id, "compare parm", comparison_parameter)
+        #print("compare site", comparison_site_sql_id, "compare parm", comparison_parameter)
         start_date = df['datetime'].min()
         end_date = df['datetime'].max()
         df_comparison = sql_import(comparison_parameter, comparison_site_sql_id, start_date, end_date) # fx converts to PST and out of PST

@@ -7,7 +7,7 @@ import pandas as pd
 import configparser
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from scipy.signal import find_peaks, find_peaks_cwt
 #import dash_core_components as dcc
@@ -114,13 +114,42 @@ color_map = {
     }
 
 # site code = site_sql_id
-def parameter_graph(df, site_code, site_name, parameter):
+def parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+    df = df.sort_values(by='datetime', ascending=False)
     if parameter == "FlowLevel":
-         base_parameter = "water_level"
-         derived_parameter = "discharge"
+        base_parameter = "water_level"
+        derived_parameter = "discharge"
     else:
-         base_parameter = parameter
-         derived_parameter = parameter
+        base_parameter = parameter
+        derived_parameter = parameter
+
+    if data_axis == "primary":
+        data_axis = False # secondary-y=Faluse
+    elif data_axis == "secondary":
+        data_axis = True
+
+    elif corrected_data_axis == "primary":
+        corrected_data_axis = False
+    elif corrected_data_axis == "secondary":
+        corrected_data_axis = True
+
+    elif derived_data_axis == "primary":
+        derived_data_axis == False
+    elif derived_data_axis == "secondary":
+        derived_data_axis = True
+
+    elif observation_axis == "primary":
+        observation_axis = False
+    elif observation_axis == "secondary":
+        derived_data_axis = True
+
+    elif comparison_axis == "primary":
+        comparison_axis = False
+    elif comparison_axis == "secondary":
+        comparison_axis = True
+
+
+    
     try:
         from data_cleaning import reformat_data
         df = reformat_data(df)
@@ -132,25 +161,19 @@ def parameter_graph(df, site_code, site_name, parameter):
     subplot_titles = parameter
     number_of_rows = 1
     number_of_columns = 1
-    title_font_size = 50
-    annotation_font_size = 65 # subplot titels are hardcoded as annotations
+    title_font_size = 45 # plot title
+    annotation_font_size = 50 # subplot titels are hardcoded as annotations
     show_subplot_titles = False # supblot titles are hardcoded as annotations
-    font_size = 20
+    font_size = 27 # axis lables, numbers, offset information
     show_chart_title = True
-    chart_title = f"{site_name} {(derived_parameter.replace('_', ' '))} {dt.datetime.strftime(df['datetime'].min(), '%Y-%m-%d')} to {dt.datetime.strftime(df['datetime'].max(), '%Y-%m-%d')}"
-    title_x = .5
+    chart_title = f"{site_name.replace('_', ' ')} {(derived_parameter.replace('_', ' '))} {dt.datetime.strftime(df['datetime'].min(), '%Y-%m-%d')} to {dt.datetime.strftime(df['datetime'].max(), '%Y-%m-%d')}"
+    title_x = 0.5
     plot_background_color = 'rgba(0,0,0,0)' #'rgba(0,0,0,0)' clearn
     subplot_titles = subplot_titles if show_subplot_titles else None
 
-    x_axis_line = True # True/False
-    x_axis_line_width = 1
-    x_axis_line_color = 'black' #black
-    x_axis_mirror = True #True/False
+   
 
-    y_axis_line = True # True/False
-    y_axis_line_width = 1
-    y_axis_line_color = 'black' #black
-    y_axis_mirror = True #True/False
+   
 
     figure_autosize = True #True/False
     y_axis_auto_margin  = True #True/False
@@ -162,27 +185,22 @@ def parameter_graph(df, site_code, site_name, parameter):
     fig = make_subplots(rows=number_of_rows, cols=number_of_columns, subplot_titles=subplot_titles, specs=[[{"secondary_y": True}] * number_of_columns] * number_of_rows, horizontal_spacing = horizontal_subplot_spacing)
     fig.update_layout(title_x=title_x)
     fig.update_layout(plot_bgcolor=plot_background_color)
-    fig.update_xaxes(showline=x_axis_line, linewidth=x_axis_line_width, linecolor=x_axis_line_color, mirror=x_axis_mirror)
-    fig.update_yaxes(automargin=y_axis_auto_margin)
     fig.update_layout(autosize = figure_autosize)
-    fig.update_yaxes(showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color, mirror=y_axis_mirror)
-    #fig.update_layout(width=fig_width,height=fig_height,)
-    #fig3.update_layout(autosize=False,width=x,height=y) # this is to set a figure height using pixles
-    #fig3.update_layout(autosize=False,width=80, height=80) # 80% of the available widthheight=0.8,  # 80% of the available height)
-   
+    
+    
+    ### legend
     # x is horizontal, y is veertical   The 'y' property is a number and may be specified as: - An int or float in the interval [-2, 3]
     legend_orientation =  "h" #h or v
-    legend_x = 0.3
+    legend_x = 0.2
     legend_y = -0.1
-    
     show_legend = True #True/False
     fig.update_layout(legend=dict(orientation=legend_orientation, x=legend_x, y=legend_y), showlegend=show_legend)
 
-    margin_l = 0
-    margin_r = 0
-    margin_b = 0
+   # margin_l = 0
+   # margin_r = 0
+   # margin_b = 0
     
-    fig.update_layout(margin=dict(l=margin_l, r=margin_r, t=title_font_size+60, b=margin_b))  # Adjust the margin as neededautosize=False,
+    #fig.update_layout(margin=dict(l=margin_l, r=margin_r, t=title_font_size, b=margin_b))  # Adjust the margin as neededautosize=False,
     fig.update_layout(font=dict(size=font_size))  # Set the desired text size)
 
     fig.update_annotations(font_size=annotation_font_size) # subplot titles are hardcoded as an annotation
@@ -194,78 +212,83 @@ def parameter_graph(df, site_code, site_name, parameter):
 
     # font 
      # font 
-    fig.update_layout(font_family=font, title_font_family=font,)
+    fig.update_layout(font_family=font, title_font_family=font,) # updates font for whole figure
     #fig.update_yaxes(title_font_family=font, secondary = False)
     #fig.update_yaxes(title_font_family=font, Secondary = True)
-    fig.update_xaxes(title_font_family=font)
-        
-        # multi site
-        #fig3 = make_subplots(rows=df.index.nunique(), cols=1, subplot_titles=df.index.unique(), specs=[[{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}], [{"secondary_y": True}]])
-        # single site
        
     row_count = 1
+    ### x axis ###
+    x_axis_line = True # True/False
+    x_axis_line_width = 2
+    x_axis_line_color = 'black' #black
+    x_axis_mirror = True #True/False
+    fig.update_xaxes(showline=x_axis_line, linewidth=x_axis_line_width, linecolor=x_axis_line_color, mirror=x_axis_mirror)
+    fig.update_xaxes(title_font_family=font,
+                     showgrid=False)
+    ### y axis ###
+    #fig.update_yaxes(showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color, mirror=y_axis_mirror, automargin=y_axis_auto_margin)
+    y_axis_line = True # True/False
+    y_axis_line_width = 2
+    y_axis_line_color = 'black' #black
+    y_axis_mirror = True #True/False
+    fig.update_yaxes(mirror=y_axis_mirror)
 
-       
-        ### Water temperature
-        #for i in df.index.unique():
-       
-        #fig.update_yaxes(range=[0,1], row=row_count, col=1, secondary_y=True)
-    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
-    fig.update_yaxes(showticklabels=False, row=row_count, col=1, secondary_y=True)
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(showgrid=False, secondary_y=False)
-    fig.update_yaxes(showgrid=False, secondary_y=True)
+    
+    
+    # primary y axis
+    
+    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')}  ({config[parameter]['unit']})", 
+                     showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color,
+                     showgrid=False, 
+                     showticklabels=True, 
+                     row=row_count, col=1, secondary_y=False)
+
+    # secondary y axis
+    # title_text=f"{derived_parameter.replace('_', ' ')}  ({config[parameter]['unit']})", 
+    fig.update_yaxes(showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color,
+                     showgrid=False, 
+                     showticklabels=True, 
+                     row=row_count, col=1, secondary_y=True)
         
-            
-    fig.add_trace(go.Scatter(
-                x=df.loc[:, "datetime"],
-                y=df.loc[:, f"data"],
-                line=dict(color=color_map.get(f"data", 'black'), width = 1),
-                name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=False),
-            
-    if f"corrected_data" in df.columns:
-            if df.corrected_data.mean() > df.data.mean()+10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
-                secondary = True
-            else:
-                 secondary = False
+    if data_axis != "none":
+        fig.add_trace(go.Scatter(
+                    x=df.loc[:, "datetime"],
+                    y=df.loc[:, f"data"],
+                    line=dict(color=color_map.get(f"data", 'black'), width = 5),
+                    name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=data_axis),
+      
+    if f"corrected_data" in df.columns and corrected_data_axis != "none":
+
             fig.add_trace(go.Scatter(
                     x=df.loc[:, "datetime"],
                     y=df.loc[:, f"corrected_data"],
-                    line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
-                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
+                    line=dict(color=color_map.get(f"corrected_data", 'black'), width = 5),
+                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y = corrected_data_axis),
            
     # special graph
-    if f"{derived_parameter}" in df.columns:
-            if derived_parameter == "discharge": # set primary axis to "stage (feet)"
-                fig.update_yaxes(title_text=f"stage (wl feet)", row=row_count, col=1, secondary_y=False, )
-            else:
-                 fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[derived_parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+    if f"{derived_parameter}" in df.columns and derived_data_axis != "none":
             fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[derived_parameter]['unit']})", row=row_count, col=1, showticklabels=True, secondary_y=True, )
             #fig.update_yaxes(showgrid=False, showticklabels=False, row=row_count, col=1, secondary_y=True)
             fig.add_trace(go.Scatter(
                 x=df.loc[:, "datetime"],
                 y=df.loc[:, f"{derived_parameter}"],
-                line=dict(color=color_map.get(f"{derived_parameter}", 'black'), width = 2),
-                name=f"{derived_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=True),
+                line=dict(color=color_map.get(f"{derived_parameter}", 'black'), width = 5),
+                name=f"{derived_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=derived_data_axis),
 
     # comparison graph    
-    if "comparison" in df.columns:
+    if "comparison" in df.columns and comparison_axis != "none":
         #df['comparison'] = df['comparison'].astype(float)
         df['comparison'] = pd.to_numeric(df['comparison'], errors='coerce')
-        if abs(df.corrected_data.mean() - df.comparison.mean()) > 10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
-                secondary = True
-        else:
-                 secondary = False
         fig.add_trace(go.Scatter(
                 x=df.loc[:, "datetime"],
                 y=df.loc[:, f"comparison"],
-                line=dict(color=color_map.get(f"comparison", 'black'), width = 2),
-                name=f"comparison",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
+                line=dict(color=color_map.get(f"comparison", 'black'), width = 5),
+                name=f"comparison ({comparison_site} {comparison_parameter})",showlegend=True,),row=row_count, col=1, secondary_y=comparison_axis),
          
     def annotations(obs):
             row_count = 1
             annotation_x = 0.05 # allows offset for when year is displatyed on axis
-            annotation_y = -.08
+            annotation_y = -.09
               # annotation 
             obs_df = df.dropna(subset=[f"{obs}"]).copy() # this solves the Try using .loc[row_indexer,col_indexer] = value instead as obs_df is a slice
             if 'offset' not in obs_df:
@@ -275,39 +298,40 @@ def parameter_graph(df, site_code, site_name, parameter):
                 # first observation
                 fig.add_annotation(text=f"{obs_df['datetime'].iloc[0].strftime('%Y-%m-%d %H:%M')}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[0]}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.02, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.04, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
               
                 fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 # last observation
                 
                 fig.add_annotation(text=f"{obs_df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+0.9, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[-1]}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+0.9, y=annotation_y-.02, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+0.9, y=annotation_y-.04, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                 
                 fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+0.9, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
                     
                     # shift
+                #if observation_axis != "none":
                 fig.add_annotation(text=f"session shift: {round((obs_df[f'offset'].iloc[-1] - obs_df[f'offset'].iloc[0]),2)}",
-                        xref="x domain", yref="y domain",
-                        x=.5, y=legend_y+.02, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                            xref="x domain", yref="y domain",
+                            x=.5, y=legend_y+.02, showarrow=False, row=row_count, col=1, secondary_y=observation_axis,)
         
-    if "field_observations" in df.columns or "observations" in df.columns or "observation" in df.columns or "observation_stage" in df.columns:
+    if "field_observations" in df.columns or "observations" in df.columns or "observation" in df.columns or "observation_stage" in df.columns and observation_axis != "none":
             if "field_observations" in df.columns:
                 obs = "field_observations"
             if "observations" in df.columns:
@@ -321,15 +345,15 @@ def parameter_graph(df, site_code, site_name, parameter):
                 y=df[f'{obs}'],
             mode='markers',
             marker=dict(
-                color=color_map.get(f"field_observation", 'black'), size=12, opacity=.9),
-            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=secondary,)
+                color=color_map.get(f"field_observation", 'black'), size=15, opacity=.9),
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=observation_axis)
             annotations(obs)
     row_count = row_count+1
     
     return fig
 
-def cache_graph_export(df, site_code, site_name, parameter):
-    fig = parameter_graph(df, site_code, site_name, parameter)
+def cache_graph_export(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+    fig = parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
     #if "field_observations" in df.columns:
         #annotations()
     paper_width = 2300
@@ -348,9 +372,10 @@ def cache_graph_export(df, site_code, site_name, parameter):
     fig.update_layout(autosize=True, width=figure_width, height = figure_height)
     return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'display': 'inline-block'})
 
-def save_fig(df, site_code, site_name, parameter):
+#def save_fig(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
     # end date
-    fig = parameter_graph(df, site_code, site_name, parameter)
+    fig = parameter_graph(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
     #start_date = df.head(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
     end_date = df.tail(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
 
@@ -358,7 +383,7 @@ def save_fig(df, site_code, site_name, parameter):
     paper_width = 2300
     paper_height = 1300
     fig.update_layout(autosize=True, width=paper_width, height = paper_height)
-    file_path = r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site_name, parameter, end_date)
+    file_path = r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site, parameter, end_date)
 
     # Use plotly.io.write_image to export the figure as a PDF
     pio.write_image(fig, file_path, format='pdf')
