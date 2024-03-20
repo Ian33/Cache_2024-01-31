@@ -592,10 +592,10 @@ def update_daterange(startDate, endDate, site_sql_id, parameter, contents, filen
             # Assume that the user uploaded an excel file
             if 'xls' in filename or 'xlsx' in filename:
                 df_import = pd.read_excel(decoded, usecols=[int(timestamp_column), int(
-                    data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse)
+                    data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse, engine='python')
             else: # if its a a csv or they didnt specift
                 df_import = pd.read_csv(io.StringIO(decoded.decode('utf-8')), usecols=[int(
-                    timestamp_column), int(data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse)
+                    timestamp_column), int(data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse, engine='python')
             return df_import.to_json(orient="split")
         if contents is None:  # nothing to upload
             df = pd.DataFrame()

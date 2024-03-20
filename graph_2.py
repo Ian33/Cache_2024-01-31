@@ -1,43 +1,19 @@
 import pandas as pd
 import datetime as dt
 import configparser
-import configparser
-from sqlalchemy import create_engine
-import pandas as pd
-import configparser
 import os
 import numpy as np
-#import matplotlib.pyplot as plt
+
 
 from scipy.signal import find_peaks, find_peaks_cwt
 #import dash_core_components as dcc
 from dash import dcc
 from dash import html
-#import dash_html_components as html
-#import dash_table
-
-import pandas as pd
-
 import plotly.io as pio
 pio.kaleido.scope.default_format = "svg"
-import plotly.graph_objs as go
-import numpy as np
 from plotly.subplots import make_subplots
-
-import plotly.graph_objs as go
 import numpy as np
-from plotly.subplots import make_subplots
 import datetime as dt
-import pandas as pd
-
-from plotly.subplots import make_subplots
-
-import configparser
-import plotly.io as pio
-import os
-import plotly.graph_objs as go
-import numpy as np
-from plotly.subplots import make_subplots
 
 if not os.path.exists("images"):
     os.mkdir("images")
@@ -217,53 +193,35 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     #fig.update_yaxes(title_font_family=font, Secondary = True)
        
     row_count = 1
-    ### x axis ###
-    x_axis_line = True # True/False
-    x_axis_line_width = 2
-    x_axis_line_color = 'black' #black
-    x_axis_mirror = True #True/False
-    fig.update_xaxes(showline=x_axis_line, linewidth=x_axis_line_width, linecolor=x_axis_line_color, mirror=x_axis_mirror)
-    fig.update_xaxes(title_font_family=font,
-                     showgrid=False)
-    ### y axis ###
-    #fig.update_yaxes(showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color, mirror=y_axis_mirror, automargin=y_axis_auto_margin)
-    y_axis_line = True # True/False
-    y_axis_line_width = 2
-    y_axis_line_color = 'black' #black
-    y_axis_mirror = True #True/False
-    fig.update_yaxes(mirror=y_axis_mirror)
 
-    
-    
-    # primary y axis
-    
-    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')}  ({config[parameter]['unit']})", 
-                     showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color,
-                     showgrid=False, 
-                     showticklabels=True, 
-                     row=row_count, col=1, secondary_y=False)
-
-    # secondary y axis
-    # title_text=f"{derived_parameter.replace('_', ' ')}  ({config[parameter]['unit']})", 
-    fig.update_yaxes(showline=y_axis_line, linewidth=y_axis_line_width, linecolor=y_axis_line_color,
-                     showgrid=False, 
-                     showticklabels=True, 
-                     row=row_count, col=1, secondary_y=True)
+       
+        ### Water temperature
+        #for i in df.index.unique():
+       
+        #fig.update_yaxes(range=[0,1], row=row_count, col=1, secondary_y=True)
+    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+    fig.update_yaxes(showticklabels=False, row=row_count, col=1, secondary_y=True)
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(showgrid=False, secondary_y=False)
+    fig.update_yaxes(showgrid=False, secondary_y=True)
         
-    if data_axis != "none":
-        fig.add_trace(go.Scatter(
-                    x=df.loc[:, "datetime"],
-                    y=df.loc[:, f"data"],
-                    line=dict(color=color_map.get(f"data", 'black'), width = 5),
-                    name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=data_axis),
-      
-    if f"corrected_data" in df.columns and corrected_data_axis != "none":
-
+            
+    fig.add_trace(go.Scatter(
+                x=df.loc[:, "datetime"],
+                y=df.loc[:, f"data"],
+                line=dict(color=color_map.get(f"data", 'black'), width = 1),
+                name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=False),
+            
+    if f"corrected_data" in df.columns:
+            if df.corrected_data.mean() > df.data.mean()+10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
+                secondary = True
+            else:
+                 secondary = False
             fig.add_trace(go.Scatter(
                     x=df.loc[:, "datetime"],
                     y=df.loc[:, f"corrected_data"],
-                    line=dict(color=color_map.get(f"corrected_data", 'black'), width = 5),
-                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y = corrected_data_axis),
+                    line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
+                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
            
     # special graph
     if f"{derived_parameter}" in df.columns and derived_data_axis != "none":
@@ -345,8 +303,8 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
                 y=df[f'{obs}'],
             mode='markers',
             marker=dict(
-                color=color_map.get(f"field_observation", 'black'), size=15, opacity=.9),
-            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=observation_axis)
+                color=color_map.get(f"field_observation", 'black'), size=12, opacity=.9),
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=secondary,)
             annotations(obs)
     row_count = row_count+1
     
@@ -387,25 +345,38 @@ def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_param
 
     # Use plotly.io.write_image to export the figure as a PDF
     pio.write_image(fig, file_path, format='pdf')
-    # Update layout with fixed dimensions
-    #fig.update_layout(autosize=True, width=paper_width, height = paper_height)
+   
+def format_cache_data(df_raw, parameter):
+    '''takes a raw df from cache, and does some pre-processing and adds settings'''
+    '''returns df to cache, which sends df back to this program'''
+    '''as this program is used in multiple parts of cache and is still in dev,
+        this is a good workaround from having to copy and paste the dev code'''
+    end_time = df_raw.tail(1)
+    end_time['datetime'] = pd.to_datetime(
+    end_time['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
+    end_time['datetime'] = end_time['datetime'].map(
+        lambda x: dt.datetime.strftime(x, '%Y_%m_%d'))
+    end_time = end_time.iloc[0, 0]
 
-    # Use write_image to export the figure with fixed dimensions
-    #image_path = f"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{site_name}_{parameter}_{end_date}.jpeg"
-    #image_path = r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\t {0}_{1}_{2}.pdf".format(site_name, parameter, end_date)
-    #image_path = f"images\{site_name}_{parameter}_{end_date}.jpeg"
-    #os.makedirs(directory, exist_ok=True)
+    df_raw['datetime'] = pd.to_datetime(
+        df_raw['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
+    df_raw['datetime'] = df_raw['datetime'].map(
+        lambda x: dt.datetime.strftime(x, '%Y-%m-%d %H:%M:%S'))
 
-    #pio.write_image(fig, image_path, width=paper_width, height=paper_height)
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site_name, parameter, end_date), format='pdf', engine="kaleido")
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site, parameter, end_date), format='pdf', engine="kaleido")
-    #scale = 1
-    
-    #fig.set_size_inches(11.69,8.27)
-    
-    #scale=1, width=1000, height=800
-    # save as pdf
-    #fig.update_layout(font_family="Serif", font_size=12)
-    #fig.write_image(file=r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site_name, parameter, end_date), format='pdf', engine="kaleido")
-    # save as html
-    #fig.write_html(r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\t {0}_{1}_{2}.html".format(site, parameter, end_date))
+
+    if parameter == "water_level" or parameter == "LakeLevel":
+        observation = "observation_stage"
+       # df_raw = df_raw[["datetime", "data", "corrected_data"]]
+    elif parameter == "groundwater_level" or parameter == "Piezometer":
+        observation = "observation_stage"
+    elif parameter == 'water_temperature':
+        observation = "parameter_observation"
+    elif parameter == 'Conductivity' or 'conductivty':
+        observation = "parameter_observation"
+        #parameter = "Conductivity"
+
+    elif parameter == "discharge" or parameter == "FlowLevel":
+        #parameter = "discharge"
+        df_raw = df_raw
+        observation = "q_observation"
+    return df_raw, parameter, observation, end_time

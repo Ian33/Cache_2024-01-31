@@ -30,3 +30,10 @@ C. To make requirements.txt
  [-m] module: allows you to run python modules as a Scripts
  [pip/conda] package manager
  [py] [-m] [pip] install [package]
+
+
+source venv/bin/activate # uses the virtualenv
+
+# a conda environment was created in cache_hydro_data and should be used
+py -m conda install <package>
+
