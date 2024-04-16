@@ -639,8 +639,6 @@ def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_S
                         df['data'] = df['data']
                 
                     from import_data import sql_import
-                    #baro_start_date = df.loc[df.index == 0, "datetime"].item()
-                    #baro_end_date =   df.loc[df.index == df.index[-1], "datetime"].item()
                     baro_start_date = df['datetime'].min()
                     baro_end_date = df['datetime'].max()
                     barometer_query = sql_import("barometer", B_ID_Lookup, baro_start_date, baro_end_date) # fx converts to PST and out of PST
@@ -653,7 +651,6 @@ def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_S
                     df = pd.merge(df,barometer_query[['datetime', "barometer_data"]],on=['datetime'])
                     df['data'] = ((df['data']-df["barometer_data"]) * 0.0335).round(3)
                     # Also a shotty conversion using a standard pressure
-                    #df = df[['datetime', 'data']]
                     df = df.drop(['barometer_data'], axis=1)
                     return  df.to_json(orient="split")
             except TypeError:
@@ -744,14 +741,6 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     #Output("Corrected_Data", "style_data_conditional"),
     # returning a blank df cant have deletable rows
     Output("Corrected_Data", "row_deletable"),
-    #Output(component_id='graph_output', component_property='children'),
-
-    #Input("data_axis","value"),
-    #Input("corrected_data_axis","value"),
-    #Input("derived_data_axis","value"),
-    #Input("observation_axis","value"),
-    #Input("comparison_axis","value"),
-
     Input("header_rows","value"),
     Input("realtime_update", "value"),
     Input("run_job", "n_clicks"),
@@ -759,7 +748,6 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
     Input('checklist', 'value'),
-    #Input('interpolate_button', 'n_clicks'),
     Input('select_data_level', 'value'),
     Input('site', 'value'),
     Input('site_sql_id', 'children'),
@@ -791,8 +779,6 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
 
     realtime_update_info = "" # placehoulder, I go back and forth bethween pausing the run until data is present and using placeholders
     callback_state = ""
-    #fig = go.Figure()
-    #fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
     
     # if there is no data to look at dont show data table
     # Input(component_id='Parameter', component_property='value'),
@@ -872,9 +858,6 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
             df_raw.drop(columns=['comparison'], inplace=True)
 
-        from cache_graph import graph_display
-            #if (df_raw.empty or len(df_raw.columns) < 1):
-            #    return dash.no_update
         changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
         if 'interpolate_button' in changed_id:
             from interpolation import cache_comparison_interpolation
@@ -902,20 +885,12 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
             #            df_raw = df_raw.sort_values(by='datetime', ascending=False)
         
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
-        #from graph_2 import cache_graph_export
-        #fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
-        #if not dff.empty:
-        #    fig = cache_graph_export(df_raw, site_sql_id, site, Parameter_value)
-         #if 'run_job' not in changed_id and not dff.empty and realtime_update is False:
-         #    return dash.no_update
+    
         if realtime_update is False:
             realtime_update_info = "realtime updating  - paused - "
         if realtime_update is True:
             realtime_update_info = "realtime updating"
         
-        
-        #return df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], [], True, fig
-        #return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True, fig
         return [f"{realtime_update_info}"],[f"{callback_state}"], df_raw.to_dict('records'), [{"name": i, "id": i} for i in df_raw.columns], True
   
 @app.callback(
@@ -986,8 +961,10 @@ def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
             if "existing_data" in df.columns:
                 df = df.loc[df.existing_data.isnull()]
             
-            
-            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+            #end_date = df["datetime"].max().date().strftime("%Y_%m_%d")
+            df = reformat_data(df)
+            end_date = df["datetime"].max().date()
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
             from sql_upload import full_upload
 
             desired_order = ["datetime", "data", "corrected_data", "discharge", "estimate"] # observation and observation_stage are kinda redundent at some point and should be clarified
@@ -1050,27 +1027,27 @@ def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
             df = reformat_data(df)  
            
             df_export = df.set_index('datetime').copy()
-            end_time = df["datetime"].max().date().strftime("%Y_%m_%d")
+            #end_date = df["datetime"].max().date().strftime("%Y_%m_%d")
+            end_date = df["datetime"].max().date()
           
             df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
             df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
 
             df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
             df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_time)+".csv")
+                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
 
 
-            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
 
             result = "  exported"
             return result
             #return result
     else:
         return dash.no_update
-        print("")
 
 
 # You could also return a 404 "URL not found" page here

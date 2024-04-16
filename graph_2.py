@@ -14,6 +14,7 @@ pio.kaleido.scope.default_format = "svg"
 from plotly.subplots import make_subplots
 import numpy as np
 import datetime as dt
+import plotly.graph_objects as go
 
 if not os.path.exists("images"):
     os.mkdir("images")
@@ -331,11 +332,12 @@ def cache_graph_export(df, site_code, site_name, parameter, comparison_site, com
     return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'display': 'inline-block'})
 
 #def save_fig(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
-def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date):
     # end date
     fig = parameter_graph(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
     #start_date = df.head(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
-    end_date = df.tail(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
+   # end_date = df.tail(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
+    #end_date = df['datetime'].max().date()
 
     # end_date = dt.datetime.strftime(df['datetime'].max(), '%Y-%m-%d')
     paper_width = 2300
