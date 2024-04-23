@@ -608,6 +608,7 @@ def update_daterange(startDate, endDate, site, site_sql_id, parameter, contents,
        # return dash.no_update
         
     if data_source == False:  # file upload
+        print("file upload")
         # try 
         # with open(file_path, 'r') as file:
         # file_contents = file.read()
@@ -716,8 +717,9 @@ def data_level(Select_Data_Source):
     Input("barometer_corrected_data", "data"),
     Input(component_id="site_sql_id", component_property="children"),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
-    Input('select_range', 'endDate'),)
-def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate):
+    Input('select_range', 'endDate'),
+    Input('Select_Data_Source', 'value'))
+def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate, select_data_source):
     ''''Takes data in question and finds cooresponding observations
     returns data, with columns for observations does not trim or cut
     send to correct_data'''
@@ -744,7 +746,11 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     data_check = pd.read_json(barometer_corrected_data, orient="split")
-    if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id): # eventually get rid of data check
+    
+    if select_data_source is False and not data_check.empty: 
+        startDate = data_check['datetime'].min() + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
+        endDate = data_check['datetime'].max()  + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
+    if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id or select_data_source is False): # eventually get rid of data check
    
         try:
             data = pd.read_json(barometer_corrected_data, orient="split")
@@ -752,8 +758,7 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
             data = fill_timeseries(data)
             from import_data import get_observations_join
             observations = get_observations_join(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
-            print("observations")
-            print(observations)
+            
             #field_observations = get_observations()
             df = merge_observations(data, observations)
             if parameter == "FlowLevel" or parameter == "discharge":
