@@ -17,7 +17,8 @@ from dash import dash_table
 import pandas as pd
 import dash_datetimepicker
 import dash_daq as daq
-
+from datetime import timedelta
+from datetime import datetime
 import numpy as np
 from sqlalchemy import create_engine
 import urllib
@@ -162,6 +163,7 @@ app.layout = html.Div([
     # date time picker not native to dash see https://community.plotly.com/t/dash-timepicker/6541/10
     
     html.Div(dash_datetimepicker.DashDatetimepicker(id='select_range', startDate='', endDate=''),style={'display': 'block'}),
+    
 
     # page_action='none',
     html.Div(
@@ -311,7 +313,23 @@ def run_job(select_data_source):
     if select_data_source == True: # if sql pause correction so uploaded data can be shown
 
         return False
-
+"""
+# global datetime
+@app.callback(
+    Output('select_range', 'startDate'),
+    Output('select_range', 'endDate'),
+    Input('select_range', 'startDate'),
+    Input('select_range', 'endDate'),)
+def update_output(start_date, end_date):
+    # Convert the UTC time to PDT (UTC-7)
+    if start_date != '' and end_date != '':
+        start_date = (pd.to_datetime(start_date).to_pydatetime()) + timedelta(hours=(7))
+        start_date = start_date + timedelta(hours=(7))
+        end_date = pd.to_datetime(end_date).to_pydatetime()
+        end_date = end_date + timedelta(hours=(7))
+        return start_date, end_date
+    else:
+        return '', ''"""
 
 
 # ONSET
@@ -553,6 +571,7 @@ def Select_Ratings(Parameter_value, site_sql_id):
     # Input(component_id='Barometer_Button', component_property='value'),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
+    Input('site', 'value'),
     Input("site_sql_id", "children"),
     Input(component_id='Parameter', component_property='value'),
     Input('datatable-upload', 'contents'),
@@ -565,18 +584,29 @@ def Select_Ratings(Parameter_value, site_sql_id):
     # Input(component_id='Available_Barometers', component_property='value'),
     # State('Barometer_Button', 'value')
 )
-def update_daterange(startDate, endDate, site_sql_id, parameter, contents, filename, header_rows, footer_rows, timestamp_column, data_column, data_source):
+def update_daterange(startDate, endDate, site, site_sql_id, parameter, contents, filename, header_rows, footer_rows, timestamp_column, data_column, data_source):
     # Call and process incoming data
     # if there is no csv file (northing in contents) query data from sql server
     # contents = holder of imported data, when data is being imported contents = True
     # data_source is if we are quering the server vs importing data, select_data_source False is file import True is SQL query
     # program corrects off the "data" column but other values are pulled
     # if contents is None:  # nothin in datatable upload
-    if data_source == True:  # query sql server
-        # sql import, seperate module becuause its used by comparison upload
-        from import_data import sql_import
-        df = sql_import(parameter, site_sql_id, startDate, endDate)
-        return  df.to_json(orient="split")
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if data_source == True:
+        if startDate != '' and endDate != '' and site != '0' and parameter != '0' and 'select_range' in changed_id:  # query sql server
+            print("sql import")
+            # sql import, seperate module becuause its used by comparison upload
+            from import_data import sql_import
+            df = sql_import(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) #convert start/end date from utc to pdt
+            return  df.to_json(orient="split")
+        else:
+            return pd.DataFrame().to_json(orient="split")  # return an empty df, will need to be changed to no update
+        
+
+        #changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+        #if 'upload_data_button' not in changed_id:
+       # return dash.no_update
+        
     if data_source == False:  # file upload
         # try 
         # with open(file_path, 'r') as file:
@@ -611,8 +641,11 @@ def update_daterange(startDate, endDate, site_sql_id, parameter, contents, filen
     Input(component_id='Barometer_Button', component_property='value'),
     Input(component_id='Available_Barometers', component_property='value'),
     Input(component_id='Select_Data_Source', component_property='value'),
-    Input("Parameter", "value"))
-def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_Source, parameter):
+    Input("Parameter", "value"),
+    Input('site', 'value'),  # startDate is a dash parameter
+    Input('select_range', 'startDate'),  # startDate is a dash parameter
+    Input('select_range', 'endDate'),)
+def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_Source, parameter, site, startDate, endDate):
     # barometer_corrected_data
     df = pd.read_json(rows, orient="split")
 
@@ -657,7 +690,7 @@ def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_S
                 return df.to_json(orient="split")
             # If we arnt using a barometer this is just a passthrough
         else:
-          
+            print("baro pass thru ", startDate, " ", endDate)
             return df.to_json(orient="split")
         
 
@@ -678,51 +711,55 @@ def data_level(Select_Data_Source):
 @app.callback(
     Output("Initial_Data_Correction", "data"),
     Output("Initial_Data_Correction", "columns"),
+    Input('site', 'value'),
     Input('Parameter', 'value'),
     Input("barometer_corrected_data", "data"),
     Input(component_id="site_sql_id", component_property="children"),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),)
-def get_observations(parameter_value, barometer_corrected_data, site_sql_id, startDate, endDate):
+def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate):
     ''''Takes data in question and finds cooresponding observations
     returns data, with columns for observations does not trim or cut
     send to correct_data'''
-    data_check = pd.read_json(barometer_corrected_data, orient="split")
+    
     
     def merge_observations(data, observations):
         if not observations.empty:
             # obserervations are queried for a df +/- 12 hour window, search for the first and last observation for a 1 hour window
             # search for obs before start of record
-            first = pd.merge_asof(data.head(1), observations.sort_values(
-                'datetime'), on=['datetime'], tolerance=pd.Timedelta("60m"), direction="backward")
-            last = pd.merge_asof(data.tail(1), observations.sort_values(
-                'datetime'), on=['datetime'], tolerance=pd.Timedelta("60m"), direction="forward")
+            #first = pd.merge_asof(data.head(1), observations.sort_values(
+            #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="backward")
+            #last = pd.merge_asof(data.tail(1), observations.sort_values(
+            #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="forward")
           
             data = pd.merge_asof(data, observations.sort_values(
-                'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="nearest")
+                'datetime'), on=['datetime'], tolerance=pd.Timedelta("7.5m"), direction="nearest")
             
-            data.loc[data.index == 0] = first.values.tolist()
-            data.loc[data.index == data.index[-1]] = last.values.tolist()
+            #data.loc[data.index == 0] = first.values.tolist()
+            #data.loc[data.index == data.index[-1]] = last.values.tolist()
            
         else:
             data["observation_stage"] = np.nan
         return data
     
-    if data_check.empty:
-        return [{}], []
-    else:
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    data_check = pd.read_json(barometer_corrected_data, orient="split")
+    if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id): # eventually get rid of data check
+   
         try:
             data = pd.read_json(barometer_corrected_data, orient="split")
             from data_cleaning import fill_timeseries
             data = fill_timeseries(data)
             from import_data import get_observations_join
-            observations = get_observations_join(parameter_value, site_sql_id, startDate, endDate)
+            observations = get_observations_join(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
+            print("observations")
+            print(observations)
             #field_observations = get_observations()
             df = merge_observations(data, observations)
-            if parameter_value == "FlowLevel" or parameter_value == "discharge":
+            if parameter == "FlowLevel" or parameter == "discharge":
                 #df = get_parameter_observation(data, field_observations, parameter_value)
                 df.rename(columns={"parameter_observation": "q_observation"}, inplace=True)
-            if parameter_value == "Conductivity" or parameter_value == "conductivity" or parameter_value == "water_temperature":
+            if parameter == "Conductivity" or parameter == "conductivity" or parameter == "water_temperature":
                 #df = get_parameter_observation(data, field_observations, parameter_value)
                 if "observation_stage" in df.columns:
                     df.drop(columns=["observation_stage"], inplace=True)
@@ -730,6 +767,11 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
         except ValueError:
              data = pd.read_json(barometer_corrected_data, orient="split")
              return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
+
+    else:
+            return [{}], [] # eventually replace with return dash.no_update
+        
+
 
 @app.callback(
 #@app.long_callback(
@@ -768,10 +810,10 @@ def get_observations(parameter_value, barometer_corrected_data, site_sql_id, sta
     #This example uses running to set the disabled property of the button to True while the callback is running, and False when it completes
    # manager=long_callback_manager,)
     
-def correct_data(header_rows, realtime_update, run_job, interpolate_button, start_date, end_date, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
+def correct_data(header_rows, realtime_update, run_job, interpolate_button, startDate, endDate, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
 
     '''Takes dataframe of data and observations from function: get_observations '''
-    df = pd.DataFrame(Initial_Data_Correction_row)
+
     from data_cleaning import style_formatting
     from data_cleaning import data_conversion
     from discharge import discharge_calculation, finalize_discharge_dataframe
@@ -794,21 +836,22 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
     # this is a bit hacky.  We are correcting off of the data column
     # but we can change the data in the data column on initial import
 
-
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     # if there is no data return a blank dataframe
-    if df.empty:
+    if pd.DataFrame(Initial_Data_Correction_row).empty:
         return dash.no_update
         # if there is data to look at read the datatable
     else:
         # first calculate parameter
-        dff = pd.DataFrame(row)
-        if dff.empty:
+        dff = pd.DataFrame(row) # the data in the table
+        if dff.empty or 'select_range' in changed_id or "Parameter" in changed_id or "site" in changed_id:
             df_raw = pd.DataFrame(Initial_Data_Correction_row)
             
-        if not dff.empty:
+        #if not dff.empty:
+        else:
             df_raw = pd.DataFrame(row)
         
-        changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    
         
         #if 'run_job' in changed_id or dff.empty or realtime_update is True:
         #if ((realtime_update is True or 'run_job' in changed_id) and not df.empty) or (((realtime_update is True or 'run_job' in changed_id) and not df.empty)):
@@ -853,7 +896,7 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
                 if "comparison" in df_raw.columns:
                     df_raw.drop(columns=['comparison'], inplace=True)
                 from import_data import usgs_data_import
-                df_comp = usgs_data_import(comparison_site_sql_id,start_date, end_date)
+                df_comp = usgs_data_import(comparison_site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
                 df_raw = df_raw.merge(df_comp, on="datetime", how = "outer")
         if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
             df_raw.drop(columns=['comparison'], inplace=True)
@@ -862,7 +905,7 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
         if 'interpolate_button' in changed_id:
             from interpolation import cache_comparison_interpolation
             print("run interpolation")
-            df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, start_date, end_date)
+            df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt)
 
             #if "header_rows" in changed_id:
             #if header_rows > 0:

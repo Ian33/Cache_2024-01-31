@@ -206,23 +206,19 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     fig.update_yaxes(showgrid=False, secondary_y=False)
     fig.update_yaxes(showgrid=False, secondary_y=True)
         
+    if f"data" in df.columns and data_axis != "none":
+        fig.add_trace(go.Scatter(
+                    x=df.loc[:, "datetime"],
+                    y=df.loc[:, f"data"],
+                    line=dict(color=color_map.get(f"data", 'black'), width = 1),
+                    name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=data_axis),
             
-    fig.add_trace(go.Scatter(
-                x=df.loc[:, "datetime"],
-                y=df.loc[:, f"data"],
-                line=dict(color=color_map.get(f"data", 'black'), width = 1),
-                name=f"raw {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=False),
-            
-    if f"corrected_data" in df.columns:
-            if df.corrected_data.mean() > df.data.mean()+10: # if there is a large difference, plot on secondary axis (discharge wont have a large difference)
-                secondary = True
-            else:
-                 secondary = False
-            fig.add_trace(go.Scatter(
+    if f"corrected_data" in df.columns and corrected_data_axis != 'none':        
+        fig.add_trace(go.Scatter(
                     x=df.loc[:, "datetime"],
                     y=df.loc[:, f"corrected_data"],
                     line=dict(color=color_map.get(f"corrected_data", 'black'), width = 2),
-                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=secondary),
+                    name=f"corrected {base_parameter.replace('_', ' ')}",showlegend=True,),row=row_count, col=1, secondary_y=corrected_data_axis),
            
     # special graph
     if f"{derived_parameter}" in df.columns and derived_data_axis != "none":
@@ -290,7 +286,7 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
                 fig.add_annotation(text=f"session shift: {round((obs_df[f'offset'].iloc[-1] - obs_df[f'offset'].iloc[0]),2)}",
                             xref="x domain", yref="y domain",
                             x=.5, y=legend_y+.02, showarrow=False, row=row_count, col=1, secondary_y=False,)
-        
+    # display field observation points    
     if "field_observations" in df.columns or "observations" in df.columns or "observation" in df.columns or "observation_stage" in df.columns and observation_axis != "none":
             if "field_observations" in df.columns:
                 obs = "field_observations"
@@ -306,7 +302,8 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
             mode='markers',
             marker=dict(
                 color=color_map.get(f"field_observation", 'black'), size=12, opacity=.9),
-            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=False,)
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=corrected_data_axis)
+            # corrected_data_axis
             annotations(obs)
     row_count = row_count+1
     

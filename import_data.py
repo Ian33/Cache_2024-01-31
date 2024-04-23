@@ -37,10 +37,15 @@ sql_engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % sql_alchemy_conn
 
 def sql_import(parameter, site_sql_id, start_date, end_date):
     if start_date != '' and end_date != '':
+            print("initial start date", start_date)
+            print("initial end date", end_date)
+            
             start_date = pd.to_datetime(start_date).to_pydatetime()
             start_date = (start_date + timedelta(hours=(7))).strftime("%m/%d/%Y %H:%M")
             end_date = pd.to_datetime(end_date).to_pydatetime()
             end_date = (end_date + timedelta(hours=(7))).strftime("%m/%d/%Y %H:%M")
+            print("offset start date", start_date)
+            print("offset end date", end_date)
             if parameter == "FlowLevel" or parameter == "discharge":
               
                 # QUERY Discharge
@@ -66,7 +71,9 @@ def sql_import(parameter, site_sql_id, start_date, end_date):
             # THIS ISNT THE COPY OF A Slice, datetime converted in sql statement
             #df["datetime"] = df["datetime"] - timedelta(hours=7)
                 
-    
+                print("df head")
+                print(df.head(1))
+                print(df.tail(1))
     else:
             df = pd.DataFrame()
             
@@ -106,8 +113,8 @@ def get_observations_join(parameter, site_sql_id, startDate, endDate):
         #endDate = pd.to_datetime(endDate)
 
         # convert start/end date to utc time
-        #startDate = startDate + timedelta(hours=(7))
-        #endDate = endDate + timedelta(hours=(7))
+        startDate = startDate + timedelta(hours=(7))
+        endDate = endDate + timedelta(hours=(7))
 
         # add data window
         #startDate = startDate - timedelta(hours=(added_time_window))

@@ -356,6 +356,8 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
 
         df["difference"] = df["difference"].round(2)
         df["c_difference"] = df["c_difference"].round(2)
+
+       
         #set estimate to numeric
         df['estimate'] = pd.to_numeric(df['estimate'], errors='coerce')
         # set estimate to true
@@ -447,7 +449,9 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         # df["corrected_data"] = df["corrected_data"].fillna(method = "bfill")
         #df['corrected_data'] = df.groupby(['c_relative_water_year'])['corrected_data'].apply(lambda x: x.ffill().bfill())
         
-        df.to_csv(r"C:/Users/ihiggins/OneDrive - King County/Documents/compare.csv")
+        #df.to_csv(r"C:/Users/ihiggins/OneDrive - King County/Documents/compare.csv")
+        
+        df.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/compare.csv")
         df = df.sort_values([f"datetime"], ascending=True)
         # drop year column
         df = df.drop(columns=['year'])
@@ -477,7 +481,8 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
         df = df.drop(columns=["c_rise_fall"])
        
         df = df.drop(columns=['test'])
-
+       
+ 
         #df = df.drop(columns=[f'quantile'])
         #df = df.drop(columns=[f'c_quantile'])
 
