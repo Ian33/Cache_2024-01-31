@@ -151,6 +151,9 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
 
 
 
+
+
+
     #from import_data import sql_import_all_datetimes
     #df_historical = sql_import_all_datetimes(parameter, site_sql_id)
     #df = df.sort_values(by=["datetime"])
@@ -519,3 +522,15 @@ def cache_comparison_interpolation(df, site, site_sql_id, parameter, start_date,
     print(f"interpolate {parameter} complete")
     
     return(df)
+
+def resample(df, data_interval):
+    df.set_index("datetime", inplace=True)
+    df = df.resample(f'{data_interval}T').interpolate(method='linear')
+    df.reset_index(level=None, drop=False, inplace=True)
+    """data.set_index("datetime", inplace=True)
+    #data = data.resample('15T').asfreq(fill_value="NaN")
+    data = data.resample(f'{data_interval}T').interpolate(method='linear', limit=4)
+    #data = data.interpolate(method='linear', limit=4)
+    data.reset_index(level=None, drop=False, inplace=True)"""
+
+    return df

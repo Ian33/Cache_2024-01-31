@@ -12,7 +12,7 @@ import numpy as np
 from scipy import stats, interpolate
 
 
-def fill_timeseries(data):
+def fill_timeseries(data, data_interval):
     data.drop_duplicates(subset=['datetime'], keep='first', inplace=True)
     data.dropna(subset=['datetime'], inplace=True)
     #data.to_csv(r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/cache_error_df.csv")
@@ -22,32 +22,25 @@ def fill_timeseries(data):
     data['datetime'] = data['datetime'].map(lambda x: dt.datetime.strftime(x, '%Y-%m-%d %H:%M:%S'))
     data['datetime'] = pd.to_datetime(data['datetime'], format='%Y-%m-%d %H:%M:%S', errors='coerce', infer_datetime_format=True)
   
-    # get origianal interval
-    delta = (data.tail(1).iloc[0, 0])-(data.head(1).iloc[0,0])
-    # compare to records to get change in time per timestamp
-    interval = (delta/(data.shape[0])).total_seconds()
-    interval = int(round((interval/60),0))
+    
     # resample
     #data['data'] = data['data'].astype(float, errors="ignore")
-    data.set_index("datetime", inplace=True)
-    '''
-    if interval < 30 and interval >=15:
-        data = data.resample('15T').interpolate(method='linear')
-        data.to_csv(r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/cache_check/data_cleaning/fill.csv")
-    if interval < 15 and interval >=5:
-        data = data.resample('15T').interpolate(method='linear')
-        data.to_csv(r"W:/STS/hydro/GAUGE/Temp/Ian's Temp/cahce_check/data_cleaning/fill.csv")
-    else:
-        data = data
-        #data = data.resample('15T')
-    '''
-    # resample to 15 minute
-    
+    """data.set_index("datetime", inplace=True)
     #data = data.resample('15T').asfreq(fill_value="NaN")
-    data = data.resample('15T').interpolate(method='linear', limit=4)
-    
-    data.reset_index(level=None, drop=False, inplace=True)
-    data['estimate'] = 0
+    data = data.resample(f'{data_interval}T').interpolate(method='linear', limit=4)
+    #data = data.interpolate(method='linear', limit=4)
+    data.reset_index(level=None, drop=False, inplace=True)"""
+   
+    #data['estimate'] = 0
+
+    data.set_index('datetime', inplace=True)
+
+    # Interpolate missing values
+    data = data.interpolate(method='linear', limit=4)
+
+    # Reset the index if needed
+    data.reset_index(inplace=True)
+    print(data)
     
     def f(x):
         if x['data'] == "NaN": return str(1)

@@ -243,10 +243,11 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     def annotations(obs):
             row_count = 1
             annotation_x = 0.05 # allows offset for when year is displatyed on axis
-            annotation_y = -.07
+            annotation_y = -.075
             
               # annotation 
             obs_df = df.dropna(subset=[f"{obs}"]).copy() # this solves the Try using .loc[row_indexer,col_indexer] = value instead as obs_df is a slice
+            obs_df = obs_df.sort_values(by='datetime', ascending=True)
             if 'offset' not in obs_df:
                  obs_df[f'offset'] = obs_df[f'observation_stage']-obs_df[f'data']
             
@@ -257,14 +258,14 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
                         x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[0]}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.025, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.05, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
               
                 fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.075, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 # last observation
                 
                 fig.add_annotation(text=f"{obs_df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')}",
@@ -272,14 +273,14 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
                         x=annotation_x+.95, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[-1]}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.025, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.05, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 
                 fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.075, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+.95, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
                     
                     # shift
                 #if observation_axis != "none":
@@ -305,6 +306,87 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
             text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=corrected_data_axis)
             # corrected_data_axis
             annotations(obs)
+    
+    ### Discharge annotation
+    def q_annotations(obs):
+            row_count = 1
+            annotation_x = 0.05 # allows offset for when year is displatyed on axis (obs is .05)
+            annotation_y = 1 # up and down? (obs is -.07)
+            
+              # annotation 
+            obs_df = df.dropna(subset=[f"{obs}"]).copy() # this solves the Try using .loc[row_indexer,col_indexer] = value instead as obs_df is a slice
+            obs_df['RatingNumber'] = obs_df['RatingNumber'].replace('NONE', '')
+            obs_df['q_offset'] = obs_df['q_offset'].replace(np.nan, '')
+            obs_df = obs_df.sort_values(by='datetime', ascending=True)
+            if obs_df.shape[0] > 0:
+                # first observation
+                #fig.add_annotation(text=f"{obs_df['datetime'].iloc[0].strftime('%Y-%m-%d %H:%M')}",
+                #        xref="x domain", yref="y domain",
+                #        x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+
+                # rating
+                # qm: {obs_df['observation_number'].iloc[0]}
+                fig.add_annotation(text=f"rating: {obs_df['RatingNumber'].iloc[0]}",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                
+                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[0]}",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                
+                fig.add_annotation(text=f"offset: {obs_df[f'q_offset'].iloc[0]} ({obs_df[f'precent_q_change'].iloc[0]}%)",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
+              
+                """fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x, y=annotation_y-.075, showarrow=False, row=row_count, col=1, secondary_y=False,)"""
+                # last observation
+                
+                #fig.add_annotation(text=f"{obs_df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')}",
+                #        xref="x domain", yref="y domain",
+                #       x=annotation_x+.95, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+
+                # {obs_df['observation_number'].iloc[-1]} 
+                fig.add_annotation(text=f"rating: {obs_df['RatingNumber'].iloc[-1]}",
+                        xref="x domain", yref="y domain",
+                       x=annotation_x+.95, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                
+                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[-1]}",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x+.95, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                fig.add_annotation(text=f"offset: {obs_df[f'q_offset'].iloc[-1]} ({obs_df[f'precent_q_change'].iloc[-1]}%)",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x+.95, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                
+                """fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[-1], 2)}",
+                        xref="x domain", yref="y domain",
+                        x=annotation_x+.95, y=annotation_y-.075, showarrow=False, row=row_count, col=1, secondary_y=False,)"""
+                    
+                    # shift
+                #if observation_axis != "none":
+                try: # if offset is nan it wont graph
+                    fig.add_annotation(text=f"rating shift: {round((obs_df[f'q_offset'].iloc[-1] - obs_df[f'q_offset'].iloc[0]),2)}",
+                                xref="x domain", yref="y domain",
+                                x=annotation_x+.5, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                except:
+                    pass
+    # display field observation points    
+    if "q_observation" in df.columns or "discharge_observation" in df.columns and observation_axis != "none":
+            if "q_observation" in df.columns:
+                obs = "q_observation"
+            if "discharge_observation" in df.columns:
+                obs = "discharge_observation"
+           
+            fig.add_trace(go.Scatter(
+                x=df['datetime'],
+                y=df[f'{obs}'],
+            mode='markers',
+            marker=dict(
+                color=color_map.get(f"q_observation", 'black'), size=12, opacity=.9),
+            text='', name=f"{obs.replace('_', ' ')}", showlegend=True), row=row_count, col=1, secondary_y=derived_data_axis)
+            # corrected_data_axis
+            q_annotations(obs)
     row_count = row_count+1
     
     return fig

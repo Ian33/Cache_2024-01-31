@@ -29,10 +29,12 @@ import datetime as dt
 ## launch a new web browser
 from web_browser import launch_web_broswer
 # launch_web_broswer()
+import dash_bootstrap_components as dbc
+
 
 ## fix copy of slice error with df.loc[df.A > 5, 'A'] = 1000
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', dbc.themes.BOOTSTRAP]
 #app = dash.Dash(__name__, external_stylesheets=external_stylesheets, long_callback_manager=long_callback_manager)
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 #Driver = 'SQL Server'
@@ -104,6 +106,7 @@ app.layout = html.Div([
     # dcc.Location(id='url', refresh=False),
     # Select a Site
     # Site = site name site_sql_id is site number
+   
     dcc.Dropdown(id='site', options=[{'label': i, 'value': i} for i in vlist], value='0', style={'display': 'block'}), 
     html.Div(id='site_sql_id', style={'display': 'none'}),
 
@@ -174,6 +177,20 @@ app.layout = html.Div([
                            {'label': 'corrected_data', 'value': 'corrected_data'}
                        ], value='data'), style={'display': 'block'},  # <-- This is the line that will be changed by the dropdown callback
         ),
+    
+    #html.Div([
+    #    dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2],), # select data intervals
+    #    html.Div(id = "data_interval", children = "data_interval") # saves string value
+    #    ]),
+
+
+    #html.Div([
+    #    html.Button("Open Modal", id="open-modal-button"),
+    #        dbc.Modal([dbc.ModalHeader("Select Data Interval"),
+    #        dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
+    #        html.Div(id="data_interval", children="data_interval")]),
+    #            dbc.ModalFooter(dbc.Button("Close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),]),
+    #html.Div([dcc.Dropdown(['1 minute', '5 minutes', '15 minutes', "1 hour", "1 day"], '15 minutes', id = "select_interval", children=["data_interval"],), ]), # interval of data
     # page_action='none',
     html.Div(id='output-container-date-picker-range'),
 
@@ -221,24 +238,52 @@ app.layout = html.Div([
         dcc.Dropdown(id='comparison_parameter', value='0'),
         dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
         html.Button('interpolate', id='interpolate_button'), 
-          
+         
         html.Button(id="run_job", children="Run Job!"),
         html.P(id="paragraph_id", children=["Button not clicked"]),
+        #html.Div([
+        html.Button("resample", id="open-modal-button"),
+            dbc.Modal([dbc.ModalHeader("resample data"),
+            dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
+            html.Div(id="data_interval", children="data_interval")]),
+                dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
         html.Div([daq.ToggleSwitch(id='realtime_update'),]), #dynamic default so sql query doesnt automatically correct for obs
                 # html.Div([daq.ToggleSwitch(id='realtime_update', value=True),]), default automatically update
         html.Div(id='realtime_update_info'),
-        
-        html.P(id="data_label", children=["data column axis"]), 
-        dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+        # graphing options
+        html.Button("graphing options", id="open-graphing-options-button"),
+        dbc.Modal([
+            dbc.ModalHeader("select data axis"),
+            dbc.ModalBody([
+                html.P(id="data_label", children=["data column axis"]), 
+                dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+                html.P(id="corrected_data_label", children=["corrected data column axis"]),
+                dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                html.P(id="derived_data_label", children=["derived data column axis"]),
+                dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                html.P(id="observation_label", children=["observation column axis"]),
+                dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                html.P(id="comparison_label", children=["comparison column axis"]),
+                dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+            ]),
+                dbc.ModalFooter(dbc.Button("close", id="close-graphing-options-button", className="ml-auto")),], id="graphing-options", size="xl",),
+
+
+
+
+
+
+        #html.P(id="data_label", children=["data column axis"]), 
+        #dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
                 #dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        html.P(id="corrected_data_label", children=["corrected data column axis"]),
-        dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        html.P(id="derived_data_label", children=["derived data column axis"]),
-        dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        html.P(id="observation_label", children=["observation column axis"]),
-        dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        html.P(id="comparison_label", children=["comparison column axis"]),
-        dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+        #html.P(id="corrected_data_label", children=["corrected data column axis"]),
+        #dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        #html.P(id="derived_data_label", children=["derived data column axis"]),
+        #dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        #html.P(id="observation_label", children=["observation column axis"]),
+        #dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+        #html.P(id="comparison_label", children=["comparison column axis"]),
+        #dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
 
         html.P(id="header_rows_title", children=["add header rows"]),
         dcc.Input(id="header_rows", type="number", value = 0,min=0, max=100, step=1,)
@@ -400,6 +445,39 @@ def display_barometer_search(Barometer_Button, Select_Data_Source, value, style)
     if style != {'display': 'none'}:
         return {'display': 'inline-block'}
 
+# data interval
+# pop up window    
+@app.callback(
+    Output("modal", "is_open"),
+    [Input("open-modal-button", "n_clicks"), Input("close-modal-button", "n_clicks")],
+    [State("modal", "is_open")],
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output(component_id='data_interval', component_property='children'),
+    Input(component_id='interval', component_property='value'),)
+def data_interval(interval):
+    labels = {0: '1', 1: '5', 2: '15', 3: '60', 4: '1440'}
+    data_interval = labels.get(interval[0], "Unknown")
+    print(data_interval)
+    return data_interval
+
+### graphing options
+# data interval
+# pop up window    
+@app.callback(
+    Output("graphing-options", "is_open"),
+    [Input("open-graphing-options-button", "n_clicks"), Input("close-graphing-options-button", "n_clicks")],
+    [State("graphing-options", "is_open")],
+)
+def toggle_graphing_options(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
 
 # Get SQL Number from G_ID: site=name Site_Code site_sql_id = sql number G_ID
 @app.callback(
@@ -718,8 +796,9 @@ def data_level(Select_Data_Source):
     Input(component_id="site_sql_id", component_property="children"),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
-    Input('Select_Data_Source', 'value'))
-def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate, select_data_source):
+    Input('Select_Data_Source', 'value'),
+    Input('data_interval', 'children'),)
+def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate, select_data_source, data_interval):
     ''''Takes data in question and finds cooresponding observations
     returns data, with columns for observations does not trim or cut
     send to correct_data'''
@@ -734,7 +813,8 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
             #last = pd.merge_asof(data.tail(1), observations.sort_values(
             #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="forward")
           
-            data = pd.merge_asof(data, observations.sort_values(
+            data = pd.merge_asof(data.sort_values(
+                'datetime'), observations.sort_values(
                 'datetime'), on=['datetime'], tolerance=pd.Timedelta("7.5m"), direction="nearest")
             
             #data.loc[data.index == 0] = first.values.tolist()
@@ -750,17 +830,19 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     if select_data_source is False and not data_check.empty: 
         startDate = data_check['datetime'].min() + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
         endDate = data_check['datetime'].max()  + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
-    if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id or select_data_source is False): # eventually get rid of data check
+    if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id or 'data_interval' in changed_id or select_data_source is False): # eventually get rid of data check
    
         try:
             data = pd.read_json(barometer_corrected_data, orient="split")
             from data_cleaning import fill_timeseries
-            data = fill_timeseries(data)
+            data = fill_timeseries(data, data_interval) # this doesn do too much anymore
+           
             from import_data import get_observations_join
             observations = get_observations_join(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
-            
+         
             #field_observations = get_observations()
             df = merge_observations(data, observations)
+           
             if parameter == "FlowLevel" or parameter == "discharge":
                 #df = get_parameter_observation(data, field_observations, parameter_value)
                 df.rename(columns={"parameter_observation": "q_observation"}, inplace=True)
@@ -769,7 +851,8 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
                 if "observation_stage" in df.columns:
                     df.drop(columns=["observation_stage"], inplace=True)
             return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
-        except ValueError:
+        except ValueError as e:
+             print(e)
              data = pd.read_json(barometer_corrected_data, orient="split")
              return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
 
@@ -788,6 +871,7 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     #Output("Corrected_Data", "style_data_conditional"),
     # returning a blank df cant have deletable rows
     Output("Corrected_Data", "row_deletable"),
+    Input('data_interval', 'children'),
     Input("header_rows","value"),
     Input("realtime_update", "value"),
     Input("run_job", "n_clicks"),
@@ -815,7 +899,7 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     #This example uses running to set the disabled property of the button to True while the callback is running, and False when it completes
    # manager=long_callback_manager,)
     
-def correct_data(header_rows, realtime_update, run_job, interpolate_button, startDate, endDate, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
+def correct_data(data_interval, eader_rows, realtime_update, run_job, interpolate_button, startDate, endDate, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
 
     '''Takes dataframe of data and observations from function: get_observations '''
 
@@ -849,7 +933,7 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
     else:
         # first calculate parameter
         dff = pd.DataFrame(row) # the data in the table
-        if dff.empty or 'select_range' in changed_id or "Parameter" in changed_id or "site" in changed_id:
+        if dff.empty or 'select_range' in changed_id or "Parameter" in changed_id or "site" in changed_id or "Initial_Data_Correction" in changed_id: # could probs just do initialdata correction
             df_raw = pd.DataFrame(Initial_Data_Correction_row)
             
         #if not dff.empty:
@@ -911,7 +995,9 @@ def correct_data(header_rows, realtime_update, run_job, interpolate_button, star
             from interpolation import cache_comparison_interpolation
             print("run interpolation")
             df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt)
-
+        if 'data_interval' in changed_id:
+            from interpolation import resample
+            df_raw = resample(df_raw, data_interval)
             #if "header_rows" in changed_id:
             #if header_rows > 0:
                 # if start_date == '':
@@ -1080,13 +1166,13 @@ def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
           
             df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-            df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
+            #df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
+            #    str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
 
-            df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-            df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-                str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
+            #df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
+            #    str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
+            #df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
+             #   str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
 
 
             save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
