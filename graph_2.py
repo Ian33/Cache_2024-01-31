@@ -406,10 +406,13 @@ def cache_graph_export(df, site_code, site_name, parameter, comparison_site, com
     pio.write_image(fig, image_path, width=paper_width, height = paper_height)
     # update for display
     figure_height = 1000
+    figure_height = '100%'
 #      figure width of 600 was originally used
+    
+    
     figure_width = 2300
-    fig.update_layout(autosize=True, width=figure_width, height = figure_height)
-    return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'display': 'inline-block'})
+    fig.update_layout(autosize=True, height = 1000)
+    return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'height': '100%'})
 
 #def save_fig(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
 def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date):

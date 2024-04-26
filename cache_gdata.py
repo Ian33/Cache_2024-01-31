@@ -178,33 +178,16 @@ app.layout = html.Div([
                        ], value='data'), style={'display': 'block'},  # <-- This is the line that will be changed by the dropdown callback
         ),
     
-    #html.Div([
-    #    dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2],), # select data intervals
-    #    html.Div(id = "data_interval", children = "data_interval") # saves string value
-    #    ]),
-
-
-    #html.Div([
-    #    html.Button("Open Modal", id="open-modal-button"),
-    #        dbc.Modal([dbc.ModalHeader("Select Data Interval"),
-    #        dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
-    #        html.Div(id="data_interval", children="data_interval")]),
-    #            dbc.ModalFooter(dbc.Button("Close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),]),
-    #html.Div([dcc.Dropdown(['1 minute', '5 minutes', '15 minutes', "1 hour", "1 day"], '15 minutes', id = "select_interval", children=["data_interval"],), ]), # interval of data
-    # page_action='none',
     html.Div(id='output-container-date-picker-range'),
 
     # returns a graph
-    html.Div(id='graph_output', style={'width': '100%', 'display': 'inline-block'}),
+    #html.Div(id='graph_output', style={'width': '100%', 'display': 'inline-block'}),
+    html.Div([html.Div(id='graph_output', style={'flex': '100%', 'width': '100%'})], style={'display': 'flex'}),
+
+    #style={'display': 'flex', 'flex-direction': 'row'})
     html.Div(id="graph_where"),
 
-    html.Div(
-        dcc.Dropdown(
-            id='Ratings',
-            value='NONE'
-        ),
-        style={'display': 'block'}
-    ),
+    html.Div(dcc.Dropdown(id='Ratings', value='NONE'), style={'display': 'block'}),
 
     html.Div(id="display"),
     dcc.Store(id='import_data', storage_type='memory'),
@@ -213,88 +196,62 @@ app.layout = html.Div([
     # html.Div(dcc.RadioItems(['all data', 'observations','discharge observations'], 'All Data', id = "filter_options", inline=True)),
     
     html.Div([
-    html.Div(
-    dash_table.DataTable(
-        id="Corrected_Data",
-        editable=True,
-        sort_action="native",
-        sort_mode="multi",
-        fixed_rows={'headers': True},
-        row_deletable=False,
-        page_action='none',
-        style_table={'height': '300px', 'overflowY': 'auto'},
-        virtualization=True,
-        fill_width=False,
-        filter_action='native',
-        style_data={'width': '200px', 'maxWidth': '200px', 'minWidth': '100px'},
-        style_data_conditional=[{'if': {'column_id': 'comparison'}, 'backgroundColor': 'rgb(222,203,228)', 'color': 'black'}],
-    ), style={'width': '80%', 'display': 'inline-block'}),
-    
-    html.Div([
         html.Div([
-            dcc.Dropdown(id='comparison_site',options=[{'label': i, 'value': i} for i in comparison_list],value='0'), 
-            html.Div(id='comparison_site_sql_id', style={'display': 'none'})
-            ]),
-        dcc.Dropdown(id='comparison_parameter', value='0'),
-        dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
-        html.Button('interpolate', id='interpolate_button'), 
-         
-        html.Button(id="run_job", children="Run Job!"),
-        html.P(id="paragraph_id", children=["Button not clicked"]),
-        #html.Div([
-        html.Button("resample", id="open-modal-button"),
-            dbc.Modal([dbc.ModalHeader("resample data"),
-            dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
-            html.Div(id="data_interval", children="data_interval")]),
-                dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
-        html.Div([daq.ToggleSwitch(id='realtime_update'),]), #dynamic default so sql query doesnt automatically correct for obs
-                # html.Div([daq.ToggleSwitch(id='realtime_update', value=True),]), default automatically update
-        html.Div(id='realtime_update_info'),
-        # graphing options
-        html.Button("graphing options", id="open-graphing-options-button"),
-        dbc.Modal([
-            dbc.ModalHeader("select data axis"),
-            dbc.ModalBody([
-                html.P(id="data_label", children=["data column axis"]), 
-                dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
-                html.P(id="corrected_data_label", children=["corrected data column axis"]),
-                dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-                html.P(id="derived_data_label", children=["derived data column axis"]),
-                dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-                html.P(id="observation_label", children=["observation column axis"]),
-                dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-                html.P(id="comparison_label", children=["comparison column axis"]),
-                dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
-            ]),
-                dbc.ModalFooter(dbc.Button("close", id="close-graphing-options-button", className="ml-auto")),], id="graphing-options", size="xl",),
+            html.Div(dash_table.DataTable(
+                id="Corrected_Data", editable=True, sort_action="native", sort_mode="multi", fixed_rows={'headers': True}, row_deletable=False,
+                page_action='none', style_table={'height': '300px', 'overflowY': 'auto'}, virtualization=True, fill_width=False, filter_action='native',
+                style_data={'width': '200px', 'maxWidth': '200px', 'minWidth': '100px'},
+                style_data_conditional=[{'if': {'column_id': 'comparison'}, 'backgroundColor': 'rgb(222,203,228)', 'color': 'black'}],),),
+        #], style={'width': '80%', 'display': 'inline-block'}),
+        ], style={'flex': '80%', 'width': '80%'}),
+        
+        html.Div([
+            html.Div([
+                dcc.Dropdown(id='comparison_site',options=[{'label': i, 'value': i} for i in comparison_list],value='0'), 
+                html.Div(id='comparison_site_sql_id', style={'display': 'none'})]),
+                dcc.Dropdown(id='comparison_parameter', value='0'),
+                dcc.Checklist(id="checklist", options=['comparison_site'],value=['comparison_site'],inline=True),
+                # realtime update info
+                html.Div([daq.ToggleSwitch(id='realtime_update'), html.Button(id="run_job", children="Run Job!"), html.Div(id='realtime_update_info'),], style={'display': 'flex', 'flex-direction': 'row'}), #dynamic default so sql query doesnt automatically correct for obs
+                html.P(id="paragraph_id", children=["Button not clicked"]),
+            # interpolation and graphing
+            html.Div([
+                html.Button('interpolate', id='interpolate_button'), 
+                html.Button("resample", id="open-modal-button"),
+                    dbc.Modal([dbc.ModalHeader("resample data"),
+                    dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
+                    html.Div(id="data_interval", children="data_interval")]),
+                        dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
+                # graphing options
+                html.Button("graphing options", id="open-graphing-options-button"),
+                    dbc.Modal([
+                        dbc.ModalHeader("select data axis"),
+                        dbc.ModalBody([
+                            html.P(id="data_label", children=["data column axis"]), 
+                            dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+                            html.P(id="corrected_data_label", children=["corrected data column axis"]),
+                            dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                            html.P(id="derived_data_label", children=["derived data column axis"]),
+                            dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                            html.P(id="observation_label", children=["observation column axis"]),
+                            dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                            html.P(id="comparison_label", children=["comparison column axis"]),
+                            dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+                        ]),
+                            dbc.ModalFooter(dbc.Button("close", id="close-graphing-options-button", className="ml-auto")),], id="graphing-options", size="xl",),   
+            ], style={'display': 'flex', 'flex-direction': 'row'}),
 
-
-
-
-
-
-        #html.P(id="data_label", children=["data column axis"]), 
-        #dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
-                #dcc.RadioItems(id='data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        #html.P(id="corrected_data_label", children=["corrected data column axis"]),
-        #dcc.RadioItems(id='corrected_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        #html.P(id="derived_data_label", children=["derived data column axis"]),
-        #dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        #html.P(id="observation_label", children=["observation column axis"]),
-        #dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
-        #html.P(id="comparison_label", children=["comparison column axis"]),
-        #dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
-
-        html.P(id="header_rows_title", children=["add header rows"]),
-        dcc.Input(id="header_rows", type="number", value = 0,min=0, max=100, step=1,)
-        ], style={'width': '20%', 'display': 'inline-block'}),
-
-  
+        #], style={'width': '20%', 'display': 'inline-block'}),
+        ], style={'flex': '20%', 'width': '20%'}),
+    ], style={'display': 'flex'}),   
+   
+   #"""app.layout = html.Div([
+   # html.Div('Component A', style={'flex': '80%'}),
+   # html.Div('Component B', style={'flex': '20%'}),
+   # ], style={'display': 'flex'})"""
 
     # fill_width=False, style_data={'width': '200px','maxWidth': '200px','minWidth': '100px',},
-    html.Div(
-        dash_table.DataTable(id="Initial_Data_Correction", virtualization=True,),
-        style={"display": "none"},),
+    
    
     # html.Br(),
     html.Div([  # big block
@@ -303,12 +260,10 @@ app.layout = html.Div([
 
         html.Button('export_data', id='export_data_button', n_clicks=0),
         html.Div(id='export_data_children', style={'width': '5%', 'display': 'inline-block'}),
-    ]),
+        html.Div(dash_table.DataTable(id="Initial_Data_Correction", virtualization=True,),style={"display": "none"},),
+    ],style={'display': 'flex', 'flex-direction': 'row'}),
 
-]),
 ])
-
-
 
 
 # Select file source
@@ -872,7 +827,6 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     # returning a blank df cant have deletable rows
     Output("Corrected_Data", "row_deletable"),
     Input('data_interval', 'children'),
-    Input("header_rows","value"),
     Input("realtime_update", "value"),
     Input("run_job", "n_clicks"),
     Input('interpolate_button', 'n_clicks'),
@@ -899,7 +853,7 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     #This example uses running to set the disabled property of the button to True while the callback is running, and False when it completes
    # manager=long_callback_manager,)
     
-def correct_data(data_interval, eader_rows, realtime_update, run_job, interpolate_button, startDate, endDate, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
+def correct_data(data_interval, realtime_update, run_job, interpolate_button, startDate, endDate, checklist, data_level, site, site_sql_id, Parameter_value, comparison_site, comparison_site_sql_id, comparison_parameter, ratings_value,  Initial_Data_Correction_row, Initial_Data_Correction_column, row, Corrected_Data_row, Corrected_Data_column):
 
     '''Takes dataframe of data and observations from function: get_observations '''
 
@@ -998,26 +952,7 @@ def correct_data(data_interval, eader_rows, realtime_update, run_job, interpolat
         if 'data_interval' in changed_id:
             from interpolation import resample
             df_raw = resample(df_raw, data_interval)
-            #if "header_rows" in changed_id:
-            #if header_rows > 0:
-                # if start_date == '':
-            #        start_date = df.loc[df.datetime == df.datetime.min, "datetime"].item()
-            #        start_date = df.loc[df.datetime == df.datetime.max, "datetime"].item()
-                    
-            #        start_date = (start_date - timedelta(minutes=(header_rows)*15))
-                    #end_date = (end_date - timedelta(minutes=(0))).strftime("%m/%d/%Y %H:%M")
-                    
-            #        from import_data import sql_import
-                    
-            #        existing_data = sql_import(Parameter_value, site_sql_id, (start_date - timedelta(minutes=(header_rows)*15)), start_date)
-                    
-            #        existing_data = existing_data[['datetime', 'corrected_data']]
-            #        existing_data = existing_data.rename(columns={"corrected_data": "existing_data"})
-                    ## fill blanks in existing data
-            #        if not existing_data.empty:
-            #            df_raw = df_raw.merge(existing_data, on = "datetime", how = "outer")
-            #            df_raw = df_raw.sort_values(by='datetime', ascending=False)
-        
+           
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
     
         if realtime_update is False:
