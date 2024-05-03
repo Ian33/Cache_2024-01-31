@@ -139,7 +139,7 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     number_of_rows = 1
     number_of_columns = 1
     title_font_size = 45 # plot title
-    annotation_font_size = 50 # subplot titels are hardcoded as annotations
+    annotation_font_size = 45 # subplot titels are hardcoded as annotations
     show_subplot_titles = False # supblot titles are hardcoded as annotations
     font_size = 27 # axis lables, numbers, offset information
     show_chart_title = True
@@ -152,7 +152,7 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
 
    
 
-    figure_autosize = True #True/False
+    figure_autosize = False #True/False
     y_axis_auto_margin  = True #True/False
     horizontal_subplot_spacing = 0.00
     font = "Arial"
@@ -200,11 +200,16 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
         #for i in df.index.unique():
        
         #fig.update_yaxes(range=[0,1], row=row_count, col=1, secondary_y=True)
-    fig.update_yaxes(title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
-    fig.update_yaxes(showticklabels=False, row=row_count, col=1, secondary_y=True)
-    fig.update_xaxes(showgrid=False)
-    fig.update_yaxes(showgrid=False, secondary_y=False)
-    fig.update_yaxes(showgrid=False, secondary_y=True)
+    # primary y axis
+    fig.update_yaxes(showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+
+    # secondary y axis
+    fig.update_yaxes(showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, row=row_count, col=1, secondary_y=True)
+
+
+    fig.update_xaxes(range=[df['datetime'].min(),df['datetime'].max()], showticklabels=True, ticks="inside", tickformat='%b-%d', showgrid=False, showline=True, linecolor='black', linewidth=2, mirror = True)
+
+   
         
     if f"data" in df.columns and data_axis != "none":
         fig.add_trace(go.Scatter(
@@ -242,8 +247,8 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
          
     def annotations(obs):
             row_count = 1
-            annotation_x = 0.05 # allows offset for when year is displatyed on axis
-            annotation_y = -.075
+            annotation_x = 0.00 #0.05 # allows offset for when year is displatyed on axis
+            annotation_y = -.085
             
               # annotation 
             obs_df = df.dropna(subset=[f"{obs}"]).copy() # this solves the Try using .loc[row_indexer,col_indexer] = value instead as obs_df is a slice
@@ -256,31 +261,31 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
                 fig.add_annotation(text=f"{obs_df['datetime'].iloc[0].strftime('%Y-%m-%d %H:%M')}",
                         xref="x domain", yref="y domain",
                         x=annotation_x, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
-                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[0]}",
+                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[0]} | inst: {round(obs_df[f'data'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
                         x=annotation_x, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
-                fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[0], 2)}",
+                fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
                         xref="x domain", yref="y domain",
                         x=annotation_x, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
               
-                fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
-                        xref="x domain", yref="y domain",
-                        x=annotation_x, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                #fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[0], 2)}",
+                #        xref="x domain", yref="y domain",
+                #        x=annotation_x, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 # last observation
                 
                 fig.add_annotation(text=f"{obs_df['datetime'].iloc[-1].strftime('%Y-%m-%d %H:%M')}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,)
-                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[-1]}",
+                        x=annotation_x+1, y=annotation_y, showarrow=False, row=row_count, col=1, secondary_y=False,) #0.95
+                fig.add_annotation(text=f"obs: {obs_df[f'{obs}'].iloc[-1]} | inst: {round(obs_df[f'data'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
-                fig.add_annotation(text=f"inst: {round(obs_df[f'data'].iloc[-1], 2)}",
-                        xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
-                
+                        x=annotation_x+1, y=annotation_y-.03, showarrow=False, row=row_count, col=1, secondary_y=False,)
                 fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[-1], 2)}",
                         xref="x domain", yref="y domain",
-                        x=annotation_x+.95, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                        x=annotation_x+1, y=annotation_y-.06, showarrow=False, row=row_count, col=1, secondary_y=False,)
+                
+                #fig.add_annotation(text=f"offset: {round(obs_df[f'offset'].iloc[-1], 2)}",
+                #        xref="x domain", yref="y domain",
+                #        x=annotation_x+1, y=annotation_y-.09, showarrow=False, row=row_count, col=1, secondary_y=False,)
                     
                     # shift
                 #if observation_axis != "none":
@@ -393,24 +398,9 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
 
 def cache_graph_export(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
     fig = parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
-    #if "field_observations" in df.columns:
-        #annotations()
-    paper_width = 2300
-    paper_height = 1300
-
-    # Update layout with fixed dimensions
-    #fig.update_layout(autosize=True, width=paper_width, height = paper_height)
-
-    # Use write_image to export the figure with fixed dimensions
-    image_path = f"images/{site_name}_{parameter}_graph.jpeg"
-    pio.write_image(fig, image_path, width=paper_width, height = paper_height)
-    # update for display
-    figure_height = 1000
-    figure_height = '100%'
-#      figure width of 600 was originally used
+   
     
-    
-    figure_width = 2300
+   
     fig.update_layout(autosize=True, height = 1000)
     return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'height': '100%'})
 
@@ -426,6 +416,7 @@ def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_param
     paper_width = 2300
     paper_height = 1300
     fig.update_layout(autosize=True, width=paper_width, height = paper_height)
+    #fig.update_layout(autosize=True, width=paper_width, height = paper_height)
     file_path = r"W:\STS\hydro\GAUGE\Temp\Ian's Temp\{0}_{1}_{2}.pdf".format(site, parameter, end_date)
 
     # Use plotly.io.write_image to export the figure as a PDF

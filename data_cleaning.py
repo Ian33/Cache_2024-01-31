@@ -40,6 +40,9 @@ def fill_timeseries(data, data_interval):
 
     # Reset the index if needed
     data.reset_index(inplace=True)
+ 
+    if "estimate" not in data.columns:
+        data["estimate"] = "0"
     print(data)
     
     def f(x):
