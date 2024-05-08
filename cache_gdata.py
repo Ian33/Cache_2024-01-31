@@ -221,7 +221,11 @@ app.layout = html.Div([
                     dbc.Modal([dbc.ModalHeader("data managment"),
                     dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
                     html.Div(id="data_interval", children="data_interval")]),
-                    html.Button('interpolate', id='interpolate_button'), 
+                    html.Div([
+                        html.Div(daq.NumericInput(id='earlier_rows', label='add/subtract initial rows', labelPosition='top', value=0,), style={'width': '10%', 'display': 'inline-block'}),
+                        html.Div(daq.NumericInput(id='later_rows', label='add/subtract later rows', labelPosition='top',value=0,), style={'width': '10%', 'display': 'inline-block'}),
+                    ]),
+                        html.Button('interpolate', id='interpolate_button'), 
                         dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
                 # graphing options
                 html.Button("graphing options", id="open-graphing-options-button"),
@@ -770,10 +774,18 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
             #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="backward")
             #last = pd.merge_asof(data.tail(1), observations.sort_values(
             #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="forward")
-          
+            #max_datetime = data['datetime'].max()
+            #min_datetime = data['datetime'].min()
+            #size = data.shape[0]
+            #print("max ", max_datetime, "min ", min_datetime, "size", size)
+     
+            # gets interval and devides by two
+            min_series = (60/len((data["datetime"].dt.strftime('%M').copy()).drop_duplicates()))/2
+
+
             data = pd.merge_asof(data.sort_values(
                 'datetime'), observations.sort_values(
-                'datetime'), on=['datetime'], tolerance=pd.Timedelta("7.5m"), direction="nearest")
+                'datetime'), on=['datetime'], tolerance=pd.Timedelta(f"{min_series}m"), direction="nearest")
             
             #data.loc[data.index == 0] = first.values.tolist()
             #data.loc[data.index == data.index[-1]] = last.values.tolist()
