@@ -37,3 +37,6 @@ source venv/bin/activate # uses the virtualenv
 # a conda environment was created in cache_hydro_data and should be used
 py -m conda install <package>
 
+# compile
+# use pyinstaller but pyinstaller does not save to path to get location run pip show pyinstaller
+ King County\Desktop\cache_hydro_data> python "c:\users\ihiggins\appdata\local\packages\pythonsoftwarefoundation.python.3.9_qbz5n2kfra8p0\localcache\local-packages\python39\site-packages\pyinstaller" cache_gdata.py

@@ -216,11 +216,12 @@ app.layout = html.Div([
                 html.P(id="paragraph_id", children=["Button not clicked"]),
             # interpolation and graphing
             html.Div([
-                html.Button('interpolate', id='interpolate_button'), 
-                html.Button("resample", id="open-modal-button"),
-                    dbc.Modal([dbc.ModalHeader("resample data"),
+                
+                html.Button("data managment", id="open-modal-button"),
+                    dbc.Modal([dbc.ModalHeader("data managment"),
                     dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
                     html.Div(id="data_interval", children="data_interval")]),
+                    html.Button('interpolate', id='interpolate_button'), 
                         dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
                 # graphing options
                 html.Button("graphing options", id="open-graphing-options-button"),
@@ -433,6 +434,8 @@ def toggle_graphing_options(n1, n2, is_open):
     if n1 or n2:
         return not is_open
     return is_open
+
+
 
 # Get SQL Number from G_ID: site=name Site_Code site_sql_id = sql number G_ID
 @app.callback(
@@ -954,6 +957,7 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
             df_raw = resample(df_raw, data_interval)
            
         df_raw = df_raw.sort_values(by='datetime', ascending=False)
+        df_raw["datetime"] = df_raw["datetime"].dt.strftime('%Y-%m-%d %H:%M') # allows dash graph to display datetime without the "Td"
     
         if realtime_update is False:
             realtime_update_info = "realtime updating  - paused - "
@@ -1101,14 +1105,7 @@ def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
           
             df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
                 str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-            #df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-            #    str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-
-            #df_export.to_csv("W:/STS/hydro/GAUGE/Temp/Ian's Temp/" +
-            #    str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-            #df_export.to_csv("C:/Users/ihiggins/OneDrive - King County/cache_upload/" +
-             #   str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
-
+           
 
             save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
 

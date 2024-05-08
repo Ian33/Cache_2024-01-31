@@ -43,8 +43,8 @@ def fill_timeseries(data, data_interval):
  
     if "estimate" not in data.columns:
         data["estimate"] = "0"
-    print(data)
     
+
     def f(x):
         if x['data'] == "NaN": return str(1)
         else: return x['estimate']
