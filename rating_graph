@@ -1,0 +1,170 @@
+from import_data import get_site_sql_id, get_observations_join, get_rating_points_and_list
+
+import pandas as pd
+
+import pandas as pd
+import datetime as dt
+import configparser
+import os
+import numpy as np
+
+
+from scipy.signal import find_peaks, find_peaks_cwt
+#import dash_core_components as dcc
+from dash import dcc
+from dash import html
+import plotly.io as pio
+pio.kaleido.scope.default_format = "svg"
+from plotly.subplots import make_subplots
+import numpy as np
+import datetime as dt
+import plotly.graph_objects as go
+# gget discharge info
+import base64
+import datetime as dt
+from datetime import timedelta
+from datetime import datetime
+import plotly.express as px
+import pyodbc
+import configparser
+import pandas as pd
+from datetime import date
+
+from plotly.subplots import make_subplots
+from sqlalchemy import create_engine
+import urllib
+
+config = configparser.ConfigParser()
+config.read('gdata_config.ini')
+
+
+from dash import Dash, dcc, html, Input, Output
+import plotly.express as px
+from dash import Dash, Input, Output, callback, dash_table
+
+app = Dash(__name__)
+
+
+
+# define site_id (58A)
+parameter = "discharge"
+startDate = pd.to_datetime("1989-01-01")
+endDate = pd.to_datetime(pd.to_datetime('today'))
+site_id = "58A"
+#get site_sql_id
+site_sql_id = get_site_sql_id(site_id)
+print(site_sql_id)
+
+# get observations
+obs = get_observations_join(parameter, site_sql_id, startDate, endDate)
+# Example usage
+rating_points, rating_list = get_rating_points_and_list(site_sql_id)
+print(obs)
+
+app.layout = html.Div([
+    html.H4('Interactive scatter plot with Iris dataset'),
+    dcc.Dropdown(rating_list, id='rating_list'),
+    
+    
+    html.P("Filter by rating:"),
+    dcc.RangeSlider(id='range-slider',min=obs["observation_number"].min(), max=obs["observation_number"].max(), value=[obs["observation_number"].min(), obs["observation_number"].max()], marks=None,
+    tooltip={
+        "placement": "bottom",
+        "always_visible": True,
+        "style": {"color": "LightSteelBlue", "fontSize": "20px"},
+    },),
+    dcc.Graph(id="scatter-plot"),
+    dash_table.DataTable(id='tbl'),
+])
+
+
+@app.callback(
+    Output("scatter-plot", "figure"), 
+    Output("tbl", "data"),
+    Output("tbl", "columns"),
+    Input('rating_list', 'value'),
+    Input("range-slider", "value"))
+def update_bar_chart(rating, slider_range):
+    df = px.data.iris() # replace with your own data source
+    low, high = slider_range
+    mask = (df['petal_width'] > low) & (df['petal_width'] < high)
+    fig = make_subplots(rows=1, cols=1)
+    fig.update_layout(
+        title='Stage Rating vs Discharge Rating',
+        xaxis=dict(title='Stage Rating (Water Level)',type='log'),
+        yaxis=dict(title='Discharge Rating',type='log'))
+
+    #for item in rating_list:
+        # line
+    fig.add_trace(go.Scatter(
+                        x=rating_points.loc[rating_points.index == rating, "stage_rating"], #+ rating_points.loc[rating_points.index == item, "offset"],
+                        y=rating_points.loc[rating_points.index == rating, "discharge_rating"],
+                        line=dict(width = 1),
+                        name=f"{rating} offset: {(rating_points.loc[rating_points.index == rating, 'offset']).unique()}",showlegend=True,),row=1, col=1),   
+   
+     # show all observartions
+    fig.add_trace(go.Scatter(
+        x=obs["observation_stage"] - (rating_points["offset"].loc[rating_points.index == rating]).mean(),
+        y=obs["parameter_observation"],
+        mode='markers',  # Set the mode to markers
+        marker=dict(
+            size=6,  # Adjust the size of the markers as needed
+            opacity=.5,
+            color = "gray",  # Optionally add a colorbar
+        ),
+        text=obs["observation_number"],  # Set the label to the observation_number column
+        name="obs",
+        showlegend=True,
+    ), row=1, col=1)
+   
+    # filtered observations
+   
+     # points
+    obs['observation_age'] = (obs['datetime'].max() - obs['datetime']).dt.days
+
+    # Normalize ages to range between 0 and 1
+    max_age = obs['observation_age'].max()
+    min_age = obs['observation_age'].min()
+    obs['normalized_age'] = (obs['observation_age'] - min_age) / (max_age - min_age)
+    low, high = slider_range
+    mask = obs.loc[(obs['observation_number'] >= low) & (obs['observation_number'] <= high)].copy()
+    # Define a colormap where opacity varies with normalized age
+    colormap = np.linspace(0.1, 1, len(obs))  # Adjust the range and steps as needed
+    colorscale = [[i, 'rgb(127, 255, 212)'] for i in colormap]  # Mint color scale
+
+    fig.add_trace(go.Scatter(
+        x=mask["observation_stage"] - (rating_points["offset"].loc[rating_points.index == rating]).mean(),
+        y=mask["parameter_observation"],
+        mode='markers',  # Set the mode to markers
+        marker=dict(
+           size=10,  # Adjust the size of the markers as needed
+        color=mask['normalized_age'],  # Set color based on normalized age
+        colorscale="Mint",  # Use the defined colorscale
+        ),
+        text=obs["observation_number"],  # Set the label to the observation_number column
+        name="obs",
+        showlegend=True,
+    ), row=1, col=1)
+
+    
+    # deal with this mask file
+    mask = mask.drop(["observation_age", "normalized_age"], axis=1, errors='ignore')
+    mask["stage_offset"] = mask["observation_stage"] - (rating_points["offset"].loc[rating_points.index == rating]).mean()
+    mask = pd.merge_asof(mask.dropna().sort_values("stage_offset"), rating_points.loc[rating_points.index == rating], left_on= "stage_offset", right_on = "stage_rating")
+    mask["rating_offset"] = round(mask["parameter_observation"] - mask['discharge_rating'], 2)
+    mask["rating_precent_change"] = round(abs((mask["parameter_observation"] - mask['discharge_rating'])/mask["parameter_observation"])/100, 2)
+
+    return fig, mask.to_dict('records'),[{"name": i, "id": i} for i in mask.columns]
+
+
+app.run_server(debug=True)
+
+
+
+
+    
+    
+#fig.show()
+#print(rating_points)
+#print(rating_list)
+

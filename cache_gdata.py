@@ -24,6 +24,7 @@ from sqlalchemy import create_engine
 import urllib
 import plotly.graph_objs as go
 import datetime as dt
+from dash.exceptions import PreventUpdate
 # long call back 
 # https://dash.plotly.com/long-callbacks
 ## launch a new web browser
@@ -191,7 +192,7 @@ app.layout = html.Div([
 
     html.Div(id="display"),
     dcc.Store(id='import_data', storage_type='memory'),
-    dcc.Store(id="barometer_corrected_data", storage_type='memory'),
+    #dcc.Store(id="barometer_corrected_data", storage_type='memory'),
     # visable data table
     # html.Div(dcc.RadioItems(['all data', 'observations','discharge observations'], 'All Data', id = "filter_options", inline=True)),
     
@@ -221,10 +222,6 @@ app.layout = html.Div([
                     dbc.Modal([dbc.ModalHeader("data managment"),
                     dbc.ModalBody([dcc.RangeSlider(id='interval', min=0, max=4, step=None, marks={0: '1 min', 1: '5 min', 2: '15 min', 3: 'hourly', 4: 'daily'}, value=[2]),
                     html.Div(id="data_interval", children="data_interval")]),
-                    html.Div([
-                        html.Div(daq.NumericInput(id='earlier_rows', label='add/subtract initial rows', labelPosition='top', value=0,), style={'width': '10%', 'display': 'inline-block'}),
-                        html.Div(daq.NumericInput(id='later_rows', label='add/subtract later rows', labelPosition='top',value=0,), style={'width': '10%', 'display': 'inline-block'}),
-                    ]),
                         html.Button('interpolate', id='interpolate_button'), 
                         dbc.ModalFooter(dbc.Button("close", id="close-modal-button", className="ml-auto")),], id="modal", size="xl",),
                 # graphing options
@@ -239,12 +236,20 @@ app.layout = html.Div([
                             html.P(id="derived_data_label", children=["derived data column axis"]),
                             dcc.RadioItems(id='derived_data_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
                             html.P(id="observation_label", children=["observation column axis"]),
-                            dcc.RadioItems(id='observation_axis', options=['primary', 'secondary', 'none'], value='secondary', inline=True),
+                            dcc.Checklist(id='observation_axis', options=['show', 'none'], value='secondary', inline=True),
                             html.P(id="comparison_label", children=["comparison column axis"]),
                             dcc.RadioItems(id='comparison_axis', options=['primary', 'secondary', 'none'], value='primary', inline=True),
+                            daq.NumericInput(id = "primary_min", label='primary min',labelPosition='bottom',value=" ",),
+                            daq.NumericInput(id = "primary_max", label='primary max',labelPosition='bottom',value=" ",),
+                            daq.NumericInput(id = "secondary_min", label='secondary min',labelPosition='bottom',value=" ",),
+                            daq.NumericInput(id = "secondary_max", label='secondary max',labelPosition='bottom',value=" "),
+
                         ]),
                             dbc.ModalFooter(dbc.Button("close", id="close-graphing-options-button", className="ml-auto")),], id="graphing-options", size="xl",),   
             ], style={'display': 'flex', 'flex-direction': 'row'}),
+
+
+
 
         #], style={'width': '20%', 'display': 'inline-block'}),
         ], style={'flex': '20%', 'width': '20%'}),
@@ -608,6 +613,8 @@ def Select_Ratings(Parameter_value, site_sql_id):
 @app.callback(
     # Output('output-container-date-picker-range', 'children'),
     Output('import_data', 'data'),
+    Output('select_range', 'startDate'),  # startDate is a dash parameter
+    Output('select_range', 'endDate'),
     # Input(component_id='Barometer_Button', component_property='value'),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
@@ -620,11 +627,13 @@ def Select_Ratings(Parameter_value, site_sql_id):
     Input('FOOTER_ROWS', 'value'),
     Input('TIMESTAMP_COLUMN', 'value'),
     Input('DATA_COLUMN', 'value'),
-    Input('Select_Data_Source', 'value')
+    Input('Select_Data_Source', 'value'),
+    Input('Barometer_Button', 'value'),
+    Input('Available_Barometers', 'value'),
     # Input(component_id='Available_Barometers', component_property='value'),
     # State('Barometer_Button', 'value')
 )
-def update_daterange(startDate, endDate, site, site_sql_id, parameter, contents, filename, header_rows, footer_rows, timestamp_column, data_column, data_source):
+def update_daterange(startDate, endDate, site, site_sql_id, parameter, contents, filename, header_rows, footer_rows, timestamp_column, data_column, data_source, barometer_button, available_barometers):
     # Call and process incoming data
     # if there is no csv file (northing in contents) query data from sql server
     # contents = holder of imported data, when data is being imported contents = True
@@ -632,109 +641,58 @@ def update_daterange(startDate, endDate, site, site_sql_id, parameter, contents,
     # program corrects off the "data" column but other values are pulled
     # if contents is None:  # nothin in datatable upload
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    if data_source == True:
-        if startDate != '' and endDate != '' and site != '0' and parameter != '0' and 'select_range' in changed_id:  # query sql server
-            print("sql import")
-            # sql import, seperate module becuause its used by comparison upload
-            from import_data import sql_import
-            df = sql_import(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) #convert start/end date from utc to pdt
-            return  df.to_json(orient="split")
-        else:
-            return pd.DataFrame().to_json(orient="split")  # return an empty df, will need to be changed to no update
-        
+    from import_data import sql_import
+    if data_source == True and startDate != '' and endDate != '' and site != '0' and parameter != '0' and 'select_range' in changed_id:  # query sql server
+        df = sql_import(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) #convert start/end date from utc to pdt
+        return  df.to_json(orient="split"), startDate, endDate
 
-        #changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-        #if 'upload_data_button' not in changed_id:
-       # return dash.no_update
-        
-    if data_source == False:  # file upload
-        print("file upload")
-        # try 
-        # with open(file_path, 'r') as file:
-        # file_contents = file.read()
-        # and run get field observations after data import for better error control
-        if contents is not None:  # if there is a file
-            content_type, content_string = contents.split(',')
-            decoded = base64.b64decode(content_string)
-            # Assume that the user uploaded a CSV file
-            # this assumes the file name ends in 'csv' or 'xls'
-            def dateparse (time):    
-                return pd.to_datetime( time, format='%Y%m%d %H:M:S', errors='ignore')
-            # Assume that the user uploaded an excel file
-            if 'xls' in filename or 'xlsx' in filename:
-                df_import = pd.read_excel(decoded, usecols=[int(timestamp_column), int(
+    elif data_source == False and contents is not None:  # if there is a file #if data_source == False:  # file upload and run get field observations after data import for better error control
+        content_type, content_string = contents.split(',')
+        decoded = base64.b64decode(content_string)
+        # Assume that the user uploaded a CSV file
+        # this assumes the file name ends in 'csv' or 'xls'
+        def dateparse (time):    
+            return pd.to_datetime( time, format='%Y%m%d %H:M:S', errors='ignore')
+        # Assume that the user uploaded an excel file
+        if 'xls' in filename or 'xlsx' in filename:
+            df = pd.read_excel(decoded, usecols=[int(timestamp_column), int(
                     data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse, engine='python')
-            else: # if its a a csv or they didnt specift
-                df_import = pd.read_csv(io.StringIO(decoded.decode('utf-8')), usecols=[int(
+        else: # if its a a csv or they didnt specift
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')), usecols=[int(
                     timestamp_column), int(data_column)], skiprows=int(header_rows), skipfooter=int(footer_rows), names=['datetime', 'data'], parse_dates=[0], date_parser=dateparse, engine='python')
-            return df_import.to_json(orient="split")
-        if contents is None:  # nothing to upload
-            df = pd.DataFrame()
-            return df.to_json(orient="split")
+            
+        ### calculate barometer
+        if barometer_button == "Baro" and data_source is False:  # data source false is file import
+            search = Available_Sites.loc[Available_Sites["SITE_CODE"].isin([available_barometers])]
+            if search.empty:
+                #df = df.to_dict('records'), [{"name": i, "id": i} for i in df.columns], True
+                return pd.DataFrame().to_json(orient="split"), startDate, endDate
+            else:
+                B_ID_Lookup = search.iloc[0, 1]
+                # THIS IS DUMB, ITS A PLACHHOULDER there needs to be a formula to convert wl feet
+                if df['data'].mean() < 30:
+                    df['data'] = round((df['data']*68.9476), 3)
 
+                if df['data'].mean() > 999:
+                    df['data'] = df['data']
+                  
+                
+                barometer_query = sql_import("barometer", B_ID_Lookup, df['datetime'].min(), df['datetime'].max()) # fx converts to PST and out of PST
+                barometer_query = barometer_query.rename(columns = {"corrected_data": "barometer_data"})
+                # resample barometer to 5 minutes
+                barometer_query = barometer_query.set_index("datetime").resample('5T').interpolate(method='linear').reset_index(level=None, drop=False)
 
-    
-@app.callback(
-    Output("barometer_corrected_data", 'data'),
-    #Input('datatable-upload-container', 'data'),
-    Input('import_data', 'data'),
-    # Input('datatable-upload-container', 'columns'),
-    Input(component_id='Barometer_Button', component_property='value'),
-    Input(component_id='Available_Barometers', component_property='value'),
-    Input(component_id='Select_Data_Source', component_property='value'),
-    Input("Parameter", "value"),
-    Input('site', 'value'),  # startDate is a dash parameter
-    Input('select_range', 'startDate'),  # startDate is a dash parameter
-    Input('select_range', 'endDate'),)
-def update_Barometer(rows, Barometer_Button, Available_Barometers, Select_Data_Source, parameter, site, startDate, endDate):
-    # barometer_corrected_data
-    df = pd.read_json(rows, orient="split")
-
-    if df.empty:
-        df = pd.DataFrame()
-        return df.to_json(orient="split")
+                df = pd.merge(df,barometer_query[['datetime', "barometer_data"]],on=['datetime'])
+                df['data'] = ((df['data']-df["barometer_data"]) * 0.0335).round(3)
+                # Also a shotty conversion using a standard pressure
+                df = df.drop(['barometer_data'], axis=1)
+        
+       
+        return  df.to_json(orient="split"), df['datetime'].min() + timedelta(hours=(7)), df['datetime'].max() + timedelta(hours=(7))
     else:
-        
-        # df['DateTime'] = pd.strftime(df['DateTime'], format= '%Y%m%d %H:M:S', errors='ignore')
-        # ISO-8601 Standard has a T between the date and time
-        if Barometer_Button == "Baro" and Select_Data_Source is False:  # data source false is file import
-            try:
-                search = Available_Sites.loc[Available_Sites["SITE_CODE"].isin([Available_Barometers])]
-                if search.empty:
-                    #df['corrected_data'] = 0
-                    return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns], True
-                else:
-                    B_ID_Lookup = search.iloc[0, 1]
-                    # THIS IS DUMB, ITS A PLACHHOULDER there needs to be a formula to convert wl feet
-                    if df['data'].mean() < 30:
-                        df['data'] = round((df['data']*68.9476), 3)
-
-                    if df['data'].mean() > 999:
-                        df['data'] = df['data']
-                
-                    from import_data import sql_import
-                    baro_start_date = df['datetime'].min()
-                    baro_end_date = df['datetime'].max()
-                    barometer_query = sql_import("barometer", B_ID_Lookup, baro_start_date, baro_end_date) # fx converts to PST and out of PST
-                    
-                    barometer_query = barometer_query.rename(columns = {"corrected_data": "barometer_data"})
-                
-                    # resample barometer to 5 minutes
-                    barometer_query = barometer_query.set_index("datetime").resample('5T').interpolate(method='linear').reset_index(level=None, drop=False)
-
-                    df = pd.merge(df,barometer_query[['datetime', "barometer_data"]],on=['datetime'])
-                    df['data'] = ((df['data']-df["barometer_data"]) * 0.0335).round(3)
-                    # Also a shotty conversion using a standard pressure
-                    df = df.drop(['barometer_data'], axis=1)
-                    return  df.to_json(orient="split")
-            except TypeError:
-                return df.to_json(orient="split")
-            # If we arnt using a barometer this is just a passthrough
-        else:
-            print("baro pass thru ", startDate, " ", endDate)
-            return df.to_json(orient="split")
-        
-
+           
+            return pd.DataFrame().to_json(orient="split"), startDate, endDate
+     
 
 # select data level
 @app.callback(
@@ -754,12 +712,13 @@ def data_level(Select_Data_Source):
     Output("Initial_Data_Correction", "columns"),
     Input('site', 'value'),
     Input('Parameter', 'value'),
-    Input("barometer_corrected_data", "data"),
+    Input("import_data", "data"),
     Input(component_id="site_sql_id", component_property="children"),
     Input('select_range', 'startDate'),  # startDate is a dash parameter
     Input('select_range', 'endDate'),
     Input('Select_Data_Source', 'value'),
-    Input('data_interval', 'children'),)
+    Input('data_interval', 'children'),
+    )
 def get_observations(site, parameter, barometer_corrected_data, site_sql_id, startDate, endDate, select_data_source, data_interval):
     ''''Takes data in question and finds cooresponding observations
     returns data, with columns for observations does not trim or cut
@@ -768,27 +727,13 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     
     def merge_observations(data, observations):
         if not observations.empty:
-            # obserervations are queried for a df +/- 12 hour window, search for the first and last observation for a 1 hour window
-            # search for obs before start of record
-            #first = pd.merge_asof(data.head(1), observations.sort_values(
-            #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="backward")
-            #last = pd.merge_asof(data.tail(1), observations.sort_values(
-            #    'datetime'), on=['datetime'], tolerance=pd.Timedelta("15m"), direction="forward")
-            #max_datetime = data['datetime'].max()
-            #min_datetime = data['datetime'].min()
-            #size = data.shape[0]
-            #print("max ", max_datetime, "min ", min_datetime, "size", size)
-     
-            # gets interval and devides by two
             min_series = (60/len((data["datetime"].dt.strftime('%M').copy()).drop_duplicates()))/2
 
-
-            data = pd.merge_asof(data.sort_values(
-                'datetime'), observations.sort_values(
-                'datetime'), on=['datetime'], tolerance=pd.Timedelta(f"{min_series}m"), direction="nearest")
-            
-            #data.loc[data.index == 0] = first.values.tolist()
-            #data.loc[data.index == data.index[-1]] = last.values.tolist()
+            data = pd.merge_asof(data.sort_values('datetime'), 
+                     observations.sort_values('datetime'), 
+                     on='datetime', 
+                     tolerance=pd.Timedelta(f"{min_series}m"), 
+                     direction="nearest")
            
         else:
             data["observation_stage"] = np.nan
@@ -796,23 +741,22 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     data_check = pd.read_json(barometer_corrected_data, orient="split")
-    
-    if select_data_source is False and not data_check.empty: 
-        startDate = data_check['datetime'].min() + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
-        endDate = data_check['datetime'].max()  + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
+    #print("data check")
+    #print(data_check)
+    #if select_data_source is False and not data_check.empty: 
+    #    startDate = data_check['datetime'].min() + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
+    #    endDate = data_check['datetime'].max()  + timedelta(hours=(7)) # since the dash timedate is in utc we need to convert logger pdt to utc for function
     if not data_check.empty and startDate != '' and endDate != '' and site != '0' and parameter != '0' and ('site' in changed_id or 'Parameter' in changed_id or 'select_range' in changed_id or 'data_interval' in changed_id or select_data_source is False): # eventually get rid of data check
-   
+        
         try:
             data = pd.read_json(barometer_corrected_data, orient="split")
             from data_cleaning import fill_timeseries
             data = fill_timeseries(data, data_interval) # this doesn do too much anymore
-           
             from import_data import get_observations_join
             observations = get_observations_join(parameter, site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
          
             #field_observations = get_observations()
             df = merge_observations(data, observations)
-           
             if parameter == "FlowLevel" or parameter == "discharge":
                 #df = get_parameter_observation(data, field_observations, parameter_value)
                 df.rename(columns={"parameter_observation": "q_observation"}, inplace=True)
@@ -820,11 +764,23 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
                 #df = get_parameter_observation(data, field_observations, parameter_value)
                 if "observation_stage" in df.columns:
                     df.drop(columns=["observation_stage"], inplace=True)
+
+            # add per / post data
+            from import_data import sql_import
+            df_pre =  sql_import(parameter, site_sql_id, df['datetime'].min() - timedelta(hours=12), df['datetime'].min() - timedelta(hours=0)) #fx uses pdt  parm, start, end
+            df_pre["observation_stage"] = df_pre['corrected_data']
+        
+            df_post = sql_import(parameter, site_sql_id, df['datetime'].max() - timedelta(hours=0), df['datetime'].max() + timedelta(hours=12)) #convert start/end date from utc to pdt
+            df_post["observation_stage"] = df_post["corrected_data"]
+            df = pd.concat([df_pre, df_post, df])
+            df = df.sort_values(by='datetime', ascending=False)
+            df = fill_timeseries(df, data_interval) # this doesn do too much anymore
             return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
         except ValueError as e:
              print(e)
              data = pd.read_json(barometer_corrected_data, orient="split")
              return df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
+        
 
     else:
             return [{}], [] # eventually replace with return dash.no_update
@@ -841,6 +797,7 @@ def get_observations(site, parameter, barometer_corrected_data, site_sql_id, sta
     #Output("Corrected_Data", "style_data_conditional"),
     # returning a blank df cant have deletable rows
     Output("Corrected_Data", "row_deletable"),
+
     Input('data_interval', 'children'),
     Input("realtime_update", "value"),
     Input("run_job", "n_clicks"),
@@ -880,8 +837,6 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
     realtime_update_info = "" # placehoulder, I go back and forth bethween pausing the run until data is present and using placeholders
     callback_state = ""
     
-    # if there is no data to look at dont show data table
-    # Input(component_id='Parameter', component_property='value'),
     
     # field observaions function returns the field observation (observation_stage)
     # and parameter_observation where applicable
@@ -909,10 +864,6 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
         else:
             df_raw = pd.DataFrame(row)
         
-    
-        
-        #if 'run_job' in changed_id or dff.empty or realtime_update is True:
-        #if ((realtime_update is True or 'run_job' in changed_id) and not df.empty) or (((realtime_update is True or 'run_job' in changed_id) and not df.empty)):
         df_raw = reformat_data(df_raw) 
         df_raw = data_conversion(df_raw, Parameter_value)
         if (realtime_update is True or 'run_job' in changed_id):
@@ -954,7 +905,7 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
                 if "comparison" in df_raw.columns:
                     df_raw.drop(columns=['comparison'], inplace=True)
                 from import_data import usgs_data_import
-                df_comp = usgs_data_import(comparison_site_sql_id, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt
+                df_comp = usgs_data_import(comparison_site_sql_id, (pd.to_datetime(startDate)) - timedelta(hours=(7)), (pd.to_datetime(endDate)) - timedelta(hours=(7))) # convert start/end date from utc to pdt
                 df_raw = df_raw.merge(df_comp, on="datetime", how = "outer")
         if ("comparison_site" not in checklist) and "comparison" in df_raw.columns:
             df_raw.drop(columns=['comparison'], inplace=True)
@@ -963,7 +914,7 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
         if 'interpolate_button' in changed_id:
             from interpolation import cache_comparison_interpolation
             print("run interpolation")
-            df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, (pd.to_datetime(startDate).to_pydatetime()) - timedelta(hours=(7)), (pd.to_datetime(endDate).to_pydatetime()) - timedelta(hours=(7))) # convert start/end date from utc to pdt)
+            df_raw = cache_comparison_interpolation(df_raw, site, site_sql_id, Parameter_value, df_raw["datetime"].min(), df_raw["datetime"].max()) # convert start/end date from utc to pdt)
         if 'data_interval' in changed_id:
             from interpolation import resample
             df_raw = resample(df_raw, data_interval)
@@ -994,10 +945,14 @@ def correct_data(data_interval, realtime_update, run_job, interpolate_button, st
         Input("derived_data_axis","value"),
         Input("observation_axis","value"),
         Input("comparison_axis","value"),
+        Input("primary_min", "value"),
+        Input("primary_max", "value"),
+        Input("secondary_min", "value"),
+        Input("secondary_max", "value"),
         
 )
 
-def graph(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def graph(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max):
     from data_cleaning import reformat_data, parameter_calculation
     from graph_2 import cache_graph_export
     df = pd.DataFrame(df)
@@ -1007,7 +962,7 @@ def graph(df, site, site_sql_id, parameter, comparison_site, comparison_paramete
         df = reformat_data(df) 
         
         fig = html.Div(dcc.Graph(figure = go.Figure()), style = {'width': '100%', 'display': 'inline-block'})
-        fig = cache_graph_export(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+        fig = cache_graph_export(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max)
 
     return fig
 
@@ -1027,8 +982,12 @@ def graph(df, site, site_sql_id, parameter, comparison_site, comparison_paramete
     Input("derived_data_axis","value"),
     Input("observation_axis","value"),
     Input("comparison_axis","value"),
+    Input("primary_min", "value"),
+    Input("primary_max", "value"),
+    Input("secondary_min", "value"),
+    Input("secondary_max", "value"),
     )
-def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max):
     from data_cleaning import reformat_data 
     from graph_2 import save_fig
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
@@ -1049,7 +1008,7 @@ def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
             #end_date = df["datetime"].max().date().strftime("%Y_%m_%d")
             df = reformat_data(df)
             end_date = df["datetime"].max().date()
-            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date, primary_min, primary_max, secondary_min, secondary_max)
             from sql_upload import full_upload
 
             desired_order = ["datetime", "data", "corrected_data", "discharge", "estimate"] # observation and observation_stage are kinda redundent at some point and should be clarified
@@ -1094,8 +1053,12 @@ def run_upload_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
     Input("derived_data_axis","value"),
     Input("observation_axis","value"),
     Input("comparison_axis","value"),
+    Input("primary_min", "value"),
+    Input("primary_max", "value"),
+    Input("secondary_min", "value"),
+    Input("secondary_max", "value"),
     )
-def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max):
     from data_cleaning import reformat_data 
     from graph_2 import save_fig
     ''' uses same function as update graph, this code is becomingly increasingly redundent '''
@@ -1119,7 +1082,7 @@ def run_export_data(n_clicks, df, site, site_sql_id, parameter, comparison_site,
                 str(site)+"_"+str(parameter)+"_"+str(end_date)+".csv")
            
 
-            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date)
+            save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date, primary_min, primary_max, secondary_min, secondary_max)
 
             result = "  exported"
             return result

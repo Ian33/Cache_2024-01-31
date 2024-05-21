@@ -25,21 +25,39 @@ def fill_timeseries(data, data_interval):
     
     # resample
     #data['data'] = data['data'].astype(float, errors="ignore")
-    """data.set_index("datetime", inplace=True)
-    #data = data.resample('15T').asfreq(fill_value="NaN")
-    data = data.resample(f'{data_interval}T').interpolate(method='linear', limit=4)
+    interval = (60/len((data["datetime"].dt.strftime('%M').copy()).drop_duplicates()))
+  
+    if interval < 5:
+        interval = 1
+    elif interval >= 5 and interval < 10:
+        interval = 5
+    elif interval >= 10 and interval < 20:
+        interval = 15
+    elif interval <=20 and interval <= 50:
+        interval = 30
+    elif interval > 50:
+        interval = 60
+    print("interval ", interval)
+    print("interval base")
+    print(((data["datetime"].dt.strftime('%M').copy()).drop_duplicates()).sort_values(ascending=False))
+    print("interval len")
+    print(len((data["datetime"].dt.strftime('%M').copy()).drop_duplicates()))
+    data.set_index("datetime", inplace=True)
+    data = data.resample(f'{interval}T').asfreq(fill_value="NaN")
     #data = data.interpolate(method='linear', limit=4)
-    data.reset_index(level=None, drop=False, inplace=True)"""
+    #data = data.resample(f'{data_interval}T').interpolate(method='linear', limit=4)
+    #data = data.interpolate(method='linear', limit=4)
+    data.reset_index(level=None, drop=False, inplace=True)
    
     #data['estimate'] = 0
 
-    data.set_index('datetime', inplace=True)
+    """data.set_index('datetime', inplace=True)
 
     # Interpolate missing values
     data = data.interpolate(method='linear', limit=4)
 
     # Reset the index if needed
-    data.reset_index(inplace=True)
+    data.reset_index(inplace=True)"""
  
     if "estimate" not in data.columns:
         data["estimate"] = "0"

@@ -91,7 +91,7 @@ color_map = {
     }
 
 # site code = site_sql_id
-def parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
+def parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max):
     df = df.sort_values(by='datetime', ascending=False)
     if parameter == "FlowLevel":
         base_parameter = "water_level"
@@ -115,17 +115,29 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     elif derived_data_axis == "secondary":
         derived_data_axis = True
 
-    elif observation_axis == "primary":
-        observation_axis = False
-    elif observation_axis == "secondary":
-        observation_axis = True
+    #elif observation_axis == "primary":
+    #    observation_axis = False
+    #elif observation_axis == "secondary":
+    #    observation_axis = True
 
     elif comparison_axis == "primary":
         comparison_axis = False
     elif comparison_axis == "secondary":
         comparison_axis = True
 
+    #if primary_min == " ":
+    #    primary_min = df.select_dtypes(include='number').columns
+    if primary_min == " ":
+        primary_min = df[df.select_dtypes(include='number').columns].min()
 
+    if secondary_min == " ":
+        secondary_min = df[df.select_dtypes(include='number').columns].min()
+
+    if primary_max == " ":
+        primary_max = df[df.select_dtypes(include='number').columns].max()
+
+    if secondary_max == " ":
+        secondary_max = df[df.select_dtypes(include='number').columns].max()
     
     try:
         from data_cleaning import reformat_data
@@ -201,10 +213,11 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
        
         #fig.update_yaxes(range=[0,1], row=row_count, col=1, secondary_y=True)
     # primary y axis
-    fig.update_yaxes(showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
-
+    
+    fig.update_yaxes(range=[primary_min, primary_max], showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, title_text=f"{derived_parameter.replace('_', ' ')} ({config[parameter]['unit']})", row=row_count, col=1, secondary_y=False, )
+    # range=[primary_min, primary_max],
     # secondary y axis
-    fig.update_yaxes(showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, row=row_count, col=1, secondary_y=True)
+    fig.update_yaxes(range=[primary_min, primary_max], showticklabels=True, ticks="inside", showgrid=False, showline=True, linecolor='black', linewidth=2, row=row_count, col=1, secondary_y=True)
 
 
     fig.update_xaxes(range=[df['datetime'].min(),df['datetime'].max()], showticklabels=True, ticks="inside", tickformat='%b-%d', showgrid=False, showline=True, linecolor='black', linewidth=2, mirror = True)
@@ -396,8 +409,8 @@ def parameter_graph(df, site_code, site_name, parameter, comparison_site, compar
     
     return fig
 
-def cache_graph_export(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
-    fig = parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+def cache_graph_export(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max):
+    fig = parameter_graph(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max)
    
     
    
@@ -405,9 +418,9 @@ def cache_graph_export(df, site_code, site_name, parameter, comparison_site, com
     return html.Div(dcc.Graph(figure = fig), style = {'width': '100%', 'height': '100%'})
 
 #def save_fig(df, site_code, site_name, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis):
-def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date):
+def save_fig(df, site, site_sql_id, parameter, comparison_site, comparison_parameter, rating, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, end_date, primary_min, primary_max, secondary_min, secondary_max):
     # end date
-    fig = parameter_graph(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis)
+    fig = parameter_graph(df, site_sql_id, site, parameter, comparison_site, comparison_parameter, data_axis, corrected_data_axis, derived_data_axis, observation_axis, comparison_axis, primary_min, primary_max, secondary_min, secondary_max)
     #start_date = df.head(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
    # end_date = df.tail(1).iloc[0, df.columns.get_loc("datetime")].date().strftime("%Y_%m_%d")
     #end_date = df['datetime'].max().date()

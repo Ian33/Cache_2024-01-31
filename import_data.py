@@ -37,15 +37,13 @@ sql_engine = create_engine("mssql+pyodbc:///?odbc_connect=%s" % sql_alchemy_conn
 
 def sql_import(parameter, site_sql_id, start_date, end_date):
     if start_date != '' and end_date != '':
-            print("initial start date", start_date)
-            print("initial end date", end_date)
+        
             
             start_date = pd.to_datetime(start_date).to_pydatetime()
             start_date = (start_date + timedelta(hours=(7))).strftime("%m/%d/%Y %H:%M")
             end_date = pd.to_datetime(end_date).to_pydatetime()
             end_date = (end_date + timedelta(hours=(7))).strftime("%m/%d/%Y %H:%M")
-            print("offset start date", start_date)
-            print("offset end date", end_date)
+            
             if parameter == "FlowLevel" or parameter == "discharge":
               
                 # QUERY Discharge
@@ -68,12 +66,7 @@ def sql_import(parameter, site_sql_id, start_date, end_date):
                                     F"WHERE G_ID = {str(site_sql_id)} "
                                     f"AND {config[parameter]['datetime']} BETWEEN ? and ? "
                                     f"ORDER BY {config[parameter]['datetime']} DESC", conn, params=[str(start_date), str(end_date)])
-            # THIS ISNT THE COPY OF A Slice, datetime converted in sql statement
-            #df["datetime"] = df["datetime"] - timedelta(hours=7)
-                
-                print("df head")
-                print(df.head(1))
-                print(df.tail(1))
+           
     else:
             df = pd.DataFrame()
             
@@ -153,11 +146,14 @@ def get_observations_join(parameter, site_sql_id, startDate, endDate):
 def usgs_data_import(site_number, start_date, end_date):
         from data_cleaning import reformat_data
         if start_date != "" and end_date != "":
-                start_date = datetime.fromisoformat(start_date.replace("Z", ""))
+                print("start date", start_date)
+                #start_date = datetime.fromisoformat(start_date.replace("Z", ""))
+                #print("start date", start_date)
                 start_date = start_date.strftime("%Y-%m-%dT%H:%M")
-                end_date = datetime.fromisoformat(end_date.replace("Z", ""))
+                print("start date", start_date)
+                #end_date = datetime.fromisoformat(end_date.replace("Z", ""))
                 end_date = end_date.strftime("%Y-%m-%dT%H:%M")
-              
+        
                 # Example query parameters (replace with your values)
                 #site_number = '12119000'
                 #start_date = '2022-01-10T00:00'
@@ -209,3 +205,31 @@ def get_horizontal_datum(site_sql_id):
         ground_ele = ground_ele.iloc[0, 0]
     
         return ground_ele
+
+
+def get_rating_points_and_list(site_sql_id):
+        with sql_engine.begin() as conn:
+            rating_points = pd.read_sql_query(f"""
+            SELECT 
+                r.WaterLevel as stage_rating, 
+                CAST(r.Discharge AS float) as discharge_rating, 
+                r.RatingNumber as rating,
+                s.Offset as offset
+            FROM 
+                tblFlowRatings r
+            JOIN 
+                tblFlowRating_Stats s
+            ON 
+                r.RatingNumber = s.Rating_Number
+            WHERE 
+                r.G_ID = '{str(site_sql_id)}';
+        """, conn)
+        rating_points = rating_points.sort_values(by = ["rating", "stage_rating"])
+        rating_points = rating_points.set_index("rating")
+        
+
+        #grouped = rating_points.groupby('RatingNumber')
+        #individual_dfs = {rating_number: group for rating_number, group in grouped}
+        rating_list = list(rating_points.index.unique())
+    
+        return rating_points, rating_list
